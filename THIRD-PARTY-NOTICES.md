@@ -1,22 +1,25 @@
-﻿# Third-party notices
+# Native Lost Eye third-party notices
 
-Lost Eye dynamically uses the following components. No third-party binaries were modified. Keep these notices, license texts, and source access with redistributed copies.
+Applies to native Lost Eye 0.3.1. The project owner's portions use the personal source terms in [LICENSE](LICENSE). Third-party software retains its own terms; the project license does not relicense Microsoft components.
 
-| Component | Version | License / provenance |
+| Component | How it is used | Distribution and terms |
 |---|---|---|
-| LibVLCSharp | 3.10.2, commit 3082c09ca955131c705fc4767fde03e9c4a14999 | LGPL-2.1-or-later; Copyright VideoLAN and contributors |
-| VideoLAN.LibVLC.Windows | 3.0.24, official NuGet package | Core LGPL-2.1-or-later; plugin set contains other licenses including GPL-2.0-or-later |
-| .NET runtime / Windows Desktop | 10.0.14 | MIT and component-specific notices; Copyright .NET Foundation and contributors |
+| Windows Media Foundation, Direct3D 11, DXGI, Win32, COM and Shell APIs | System media, graphics, windowing and file associations | Supplied by Windows; these DLLs are not included in this package. Windows licensing and component/codec availability apply. |
+| Microsoft C/C++ runtime | Release runtime object code statically linked with /MT | Included inside Lost Eye.exe; copyright Microsoft Corporation and applicable contributors. Subject to applicable Microsoft development and redistribution terms. No separate Visual C++ runtime installation is required. |
+| Original yellow duck artwork | Embedded icon | Generated for Lost Eye; preserved assets and generation record are in the source archive. No third-party player logo was used. This is a provenance statement, not a guarantee of uniqueness or exclusive copyright. |
 
-The native NuGet manifest labels the package LGPL-2.1-or-later. Inspection found `plugins/codec/libx26410b_plugin.dll`; VLC 3.0.24 `modules/codec/x264.c` explicitly declares GPL-2.0-or-later. Accordingly this distribution and Lost Eye's source use GPL-2.0-or-later, retaining LGPL notices for the engine and managed wrapper. This avoids representing the entire bundled plugin set as LGPL-only.
+The native source has no third-party package download or codec-library dependency. It does not include or launch VLC, libVLC, LibVLCSharp, FFmpeg, .NET or a separate player application. This statement does not describe the retained legacy builds. Their notices remain in legacy/THIRD-PARTY-NOTICES.md and licenses/ in the repository.
 
-Full license texts and .NET third-party notices are in `licenses/`. VideoLAN author attribution is in `licenses/VLC-AUTHORS.txt`; original copyright headers and component licenses are retained in the included upstream source archives. The VLC source includes contrib build recipes, URLs, hashes, and patches for codec and support dependencies (including FFmpeg, x264, dav1d, libvpx, aom, libogg, libvorbis, FLAC, Opus, Speex, libass, FreeType, HarfBuzz, FriBidi, libpng, zlib, and others). See SOURCES.md for access to those dependency sources.
+The Microsoft runtime is built using the local installed toolchain. Its compiler/SDK versions and build input hashes are recorded in BUILD-INFO.json; toolchain components themselves are not included in the source archive. Builders and distributors must satisfy the applicable Microsoft terms. The license file for Lost Eye does not grant rights to redistribute Microsoft's tools, headers or runtime source.
 
-The runtime loads `LibVLCSharp.dll` and `libvlc/win-x64/` dynamically. You may replace these with compatible modified versions, and debug/reverse-engineer the application as necessary to exercise your LGPL rights. Do not mix incompatible architectures or library/plugin versions. There is no anti-tamper restriction.
+Windows may decode in software when the GPU or driver cannot decode a format. Format support depends on Windows components, graphics drivers and the media file. No universal codec, GPU, HDR, DRM or patent clearance is claimed. Optional Windows codec extensions may have separate terms.
 
-VideoLAN guidance: https://docs.videolan.me/vlc-user/en/support/faq/legalconcerns.html
-.NET licenses: https://github.com/dotnet/runtime and https://github.com/dotnet/windowsdesktop
+References:
 
-Software licensing is separate from any patent/codec obligations in the jurisdiction and use case where a binary is distributed. No claim of universal codec, DRM, hardware, or patent clearance is made.
+- [Microsoft redistribution information](https://learn.microsoft.com/en-us/visualstudio/releases/2026/redistribution)
+- [Visual Studio Community terms](https://visualstudio.microsoft.com/license-terms/vs2026-ga-community/)
+- [Visual Studio Build Tools terms](https://visualstudio.microsoft.com/license-terms/vs2026-ga-diagnostic-buildtools/)
+- [Windows Media Foundation DXGI manager](https://learn.microsoft.com/en-us/windows/win32/medfound/mf-media-engine-dxgi-manager)
+- [Windows application registration](https://learn.microsoft.com/en-us/windows/win32/shell/app-registration)
 
-The original duck was generated for Lost Eye; it is not the VLC icon, a stock character, or an endorsement by any other project. The supplied source assets may be used with this project.
+See [LICENSING.md](LICENSING.md) for previous GPL grants, ownership limits and commercial review considerations.

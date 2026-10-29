@@ -1,15 +1,46 @@
-﻿Lost Eye source code
-Copyright (c) 2026 Lost Eye contributors
+Lost Eye Personal Source License 1.0
+Effective for native 0.3.1 and subsequent copies carrying this file.
+Copyright (c) 2026 Cam Maxwell, to the extent of rights held.
+All rights reserved except for the permissions below.
 
-This program is free software: you can redistribute it and/or modify it
-under the terms of the GNU General Public License as published by the
-Free Software Foundation, either version 2 of the License, or (at your
-option) any later version.
+1. Scope
+This license covers the copyright owner's original Lost Eye native application
+in native/, scripts/Build-Native.ps1, scripts/Package-Native.ps1, Build Lost Eye.cmd,
+the current native documentation and original project artwork in assets/, and
+the copyright owner's portions of binaries built from those materials.
 
-This program is distributed in the hope that it will be useful, but
-WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-General Public License for more details.
+It does not replace licenses for Microsoft software or any other third-party
+material. It does not apply to the retained legacy code in src/, tests/, tools/,
+legacy/, legacy build scripts, or third-party license texts in licenses/.
+Those materials retain their existing terms. See LICENSING.md.
 
-The full GPL version 2 text is in licenses/GPL-2.0.txt.
-Third-party software retains its own licenses and copyright notices.
+2. Personal permission
+You may download and make private copies of the covered source and binaries,
+build the application, modify it privately, and use original or modified builds
+for your own personal, noncommercial purposes. You may keep personal backups.
+Retain the supplied license and applicable third-party notices for reference.
+They need not sit beside every private copy of the executable.
+
+3. Reserved rights
+This license does not permit commercial use, sale, public redistribution,
+publication of modified copies, sublicensing, or incorporation into another
+distributed product. Obtain the copyright owner's separate written permission
+for those activities. No trademark rights are granted. Rights not expressly
+granted here are reserved. Contact the repository owner at
+https://github.com/cammaxwel-droid/Lost_Eye to discuss commercial permission.
+
+4. Previous licenses and other owners
+Nothing here withdraws permissions already granted for earlier copies under
+GPL-2.0-or-later or another license. Recipients of those copies retain their
+rights under those terms. This license grants only rights the copyright owner
+can grant and does not claim ownership of third-party or contributor material.
+It does not restrict rights granted by third parties or applicable law.
+
+5. Warranty and liability
+To the extent permitted by applicable law, the software is provided "AS IS",
+without warranties, including merchantability, fitness for a particular purpose,
+or noninfringement. To that extent the copyright owner is not liable for damages
+arising from use of the software. This does not exclude rights or remedies that
+applicable law does not allow to be excluded.
+
+This is a source-available personal-use license, not an open-source license.

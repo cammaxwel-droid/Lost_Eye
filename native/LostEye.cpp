@@ -161,7 +161,7 @@ static fs::path KnownFolder(REFKNOWNFOLDERID id) {
     PWSTR value=nullptr;Check(SHGetKnownFolderPath(id,0,nullptr,&value));fs::path result(value);CoTaskMemFree(value);return result;
 }
 static fs::path InstallCurrentUser() {
-    auto directory=KnownFolder(FOLDERID_LocalAppData)/L"Programs"/L"Lost Eye"/L"0.3.0";
+    auto directory=KnownFolder(FOLDERID_LocalAppData)/L"Programs"/L"Lost Eye"/L"0.3.1";
     fs::create_directories(directory);auto destination=directory/L"Lost Eye.exe";auto source=fs::path(ExePath());
     if(fs::exists(destination)) {
         if(!fs::equivalent(source,destination)) {
