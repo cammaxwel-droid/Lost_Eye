@@ -1,4 +1,4 @@
-# Lost Eye 0.3.1
+# Lost Eye 0.3.2
 
 A compact Windows 11 x64 video player with the original yellow duck icon.
 
@@ -8,9 +8,17 @@ This is now a native C++ application using Windows Media Foundation and Direct3D
 
 Run **Lost Eye.exe**. It is a self-contained executable: keep or move it wherever you want. Open a video with **Open file**, drop a video onto the window, or pass its path on the command line.
 
-For convenient Windows integration, run **Install Lost Eye.cmd** once. It copies the EXE to `%LOCALAPPDATA%\Programs\Lost Eye\0.3.1`, adds Lost Eye to Start, and registers it in **Open with**. It requires no administrator rights and does not change your default player. Older version folders are preserved. Existing different files in the same version folder are not overwritten.
+For convenient Windows integration, run **Install Lost Eye.cmd** once. It copies the EXE and uninstall scripts to `%LOCALAPPDATA%\Programs\Lost Eye\0.3.2`, adds Lost Eye to Start, and registers it in **Open with**. It requires no administrator rights and does not change your default player. Older version folders are preserved. Existing different files in the same version folder are not overwritten.
 
 Right-click a video > **Open with > Lost Eye**. If you want double-clicking videos to use Lost Eye, choose **Choose another app > Lost Eye > Always** yourself. Use **Just once** to leave defaults unchanged.
+
+## Uninstall
+
+Close Lost Eye, then double-click **Uninstaller.cmd** in the extracted portable folder or `%LOCALAPPDATA%\Programs\Lost Eye\0.3.2`. Keep its companion **Uninstall-LostEye.ps1** beside it. The installed EXE also contains both scripts, so running its setup does not depend on retaining the download folder.
+
+The uninstaller removes the installed 0.3.2 copy and Windows entries that still belong to that copy. It preserves videos, source/download folders, older versions, unknown files and entries belonging to another installation. Your default-player choices are not rewritten. If you previously chose Lost Eye as a default, choose a replacement in Windows after uninstalling. If a previous Start shortcut was backed up, it is restored when safe.
+
+Uninstall needs no administrator rights. It reports a running player or files it cannot safely remove instead of forcing deletion. A portable-only copy can simply be removed from its extracted folder when you no longer want it.
 
 ## Controls
 
@@ -32,10 +40,10 @@ The active implementation is `native/LostEye.cpp`, with `native/LostEye.rc` and 
 
 Developer tools are needed only to build source. The executable needs none of them.
 
-The native portable ZIP contains one app EXE, an optional per-user setup launcher, documentation, build records, and matching native source archive. Extract it and run the EXE without installing developer tools. It contains no VLC or .NET files. Windows supplies the media components; Microsoft runtime code is linked into the EXE.
+The native portable ZIP contains one app EXE, setup/uninstall launchers, documentation, build records, and matching native source archive. Extract it and run the EXE without installing developer tools. It contains no VLC or .NET files. Windows supplies the media components; Microsoft runtime code is linked into the EXE.
 
 The original .NET/LibVLC code in `src/LostEye` and its scripts remain in the repository for legacy use. Their documentation is in `legacy/`; do not run `Build-Portable.ps1` to build the native player. Existing local older packages are preserved.
 
 ## License
 
-Native 0.3.1 is source-available for personal, noncommercial source builds and use under [LICENSE](LICENSE). Commercial rights are reserved to the extent held by the owner; commercial use or redistribution needs separate permission. Third-party terms still apply. Previously supplied GPL copies, including native 0.3.0 and its artwork, retain those permissions. See [LICENSING.md](LICENSING.md) and [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md). Original duck assets and the generation record remain unchanged.
+Native 0.3.2 is source-available for personal, noncommercial source builds and use under [LICENSE](LICENSE). Commercial rights are reserved to the extent held by the owner; commercial use or redistribution needs separate permission. Third-party terms still apply. Previously supplied GPL copies, including native 0.3.0 and its artwork, retain those permissions. See [LICENSING.md](LICENSING.md) and [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md). Original duck assets and the generation record remain unchanged.

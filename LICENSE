@@ -5,7 +5,8 @@ All rights reserved except for the permissions below.
 
 1. Scope
 This license covers the copyright owner's original Lost Eye native application
-in native/, scripts/Build-Native.ps1, scripts/Package-Native.ps1, Build Lost Eye.cmd,
+in native/, scripts/Build-Native.ps1, scripts/Package-Native.ps1,
+scripts/Test-Uninstall.ps1, Build Lost Eye.cmd,
 the current native documentation and original project artwork in assets/, and
 the copyright owner's portions of binaries built from those materials.
 

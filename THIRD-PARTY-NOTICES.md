@@ -1,6 +1,6 @@
 # Native Lost Eye third-party notices
 
-Applies to native Lost Eye 0.3.1. The project owner's portions use the personal source terms in [LICENSE](LICENSE). Third-party software retains its own terms; the project license does not relicense Microsoft components.
+Applies to native Lost Eye 0.3.2. The project owner's portions use the personal source terms in [LICENSE](LICENSE). Third-party software retains its own terms; the project license does not relicense Microsoft components.
 
 | Component | How it is used | Distribution and terms |
 |---|---|---|

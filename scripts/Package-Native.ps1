@@ -1,4 +1,4 @@
-param([string]$OutputName = 'Lost-Eye-0.3.1-win-x64')
+param([string]$OutputName = 'Lost-Eye-0.3.2-win-x64')
 $ErrorActionPreference = 'Stop'
 Import-Module (Join-Path $PSHOME 'Modules\Microsoft.PowerShell.Utility\Microsoft.PowerShell.Utility.psd1') -ErrorAction Stop
 Import-Module (Join-Path $PSHOME 'Modules\Microsoft.PowerShell.Archive\Microsoft.PowerShell.Archive.psd1') -ErrorAction Stop
@@ -32,16 +32,16 @@ foreach ($document in $documents) {
     Copy-Item -LiteralPath (Join-Path $root $document) -Destination $portable
 }
 Copy-Item -LiteralPath (Join-Path $root 'Build Lost Eye.cmd') -Destination $source
-foreach ($file in @('LostEye.cpp','LostEye.rc','app.manifest','THIRD-PARTY-NOTICES.md','VERIFICATION.md','Install Lost Eye.cmd')) {
+foreach ($file in @('LostEye.cpp','LostEye.rc','app.manifest','THIRD-PARTY-NOTICES.md','VERIFICATION.md','Install Lost Eye.cmd','Uninstaller.cmd','Uninstall-LostEye.ps1')) {
     Copy-Item -LiteralPath (Join-Path $root "native\$file") -Destination (Join-Path $source 'native')
 }
-foreach ($file in @('Build-Native.ps1','Package-Native.ps1')) {
+foreach ($file in @('Build-Native.ps1','Package-Native.ps1','Test-Uninstall.ps1')) {
     Copy-Item -LiteralPath (Join-Path $root "scripts\$file") -Destination (Join-Path $source 'scripts')
 }
 foreach ($file in @('lost-eye.ico','duck-original.png','GENERATION.md')) {
     Copy-Item -LiteralPath (Join-Path $root "assets\$file") -Destination (Join-Path $source 'assets')
 }
-Copy-Item -LiteralPath $exe,(Join-Path $root 'native\Install Lost Eye.cmd') -Destination $portable
+Copy-Item -LiteralPath $exe,(Join-Path $root 'native\Install Lost Eye.cmd'),(Join-Path $root 'native\Uninstaller.cmd'),(Join-Path $root 'native\Uninstall-LostEye.ps1') -Destination $portable
 Copy-Item -LiteralPath $record -Destination (Join-Path $portable 'BUILD-INFO.json')
 Compress-Archive -Path (Join-Path $source '*') -DestinationPath (Join-Path $portable 'Lost-Eye-native-source.zip') -CompressionLevel Optimal
 Get-ChildItem -LiteralPath $portable -File -Recurse | Sort-Object FullName | ForEach-Object {
