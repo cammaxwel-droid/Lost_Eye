@@ -18,7 +18,7 @@ Microsoft's tools and Windows SDK have their own licence terms. Standalone Build
 2. Double-click **Build Lost Eye.cmd**. Give the compiler time to finish; the window stays open and reports any error.
 3. When it says **Built**, open the reported `Lost Eye.exe`. The first build normally creates:
 
-   `artifacts\Lost-Eye-0.3.1-win-x64\Lost Eye.exe`
+   `artifacts\Lost-Eye-0.3.2-win-x64\Lost Eye.exe`
 
    Repeating a build adds a date and unique suffix to the folder name to preserve your earlier build. Close any running Lost Eye before trying another build.
 4. Choose **Open file**, drag a video onto the window, or pass a video path to the executable. Use a video already known to play on that Windows installation. Supported formats depend on Windows components and codecs installed on the computer.
@@ -27,9 +27,13 @@ The executable is portable and needs no developer tools to run. It is currently 
 
 ## Optional installation and Open with
 
-Double-click **Install Lost Eye.cmd** beside the newly built executable. It runs that executable's built-in `--install` command, copies it to `%LOCALAPPDATA%\Programs\Lost Eye\0.3.1\Lost Eye.exe`, and adds Start and **Open with** entries for your Windows account. It does not change your default video player and does not need administrator access.
+Double-click **Install Lost Eye.cmd** beside the newly built executable. It runs that executable's built-in `--install` command, copies it and its embedded uninstall scripts to `%LOCALAPPDATA%\Programs\Lost Eye\0.3.2`, and adds Start and **Open with** entries for your Windows account. It does not change your default video player and does not need administrator access.
 
 Then right-click a video, choose **Open with > Choose another app**, and select Lost Eye. The installer preserves a different existing executable in the same version's installation folder and reports that conflict instead of overwriting it. You can still run the newly built executable directly from its output folder. A rebuild with changed source is not automatically a new application version.
+
+To uninstall 0.3.2, close the player and run **Uninstaller.cmd** from the installed folder or extracted portable package, keeping **Uninstall-LostEye.ps1** beside it. It removes only the installed version and entries still owned by it. Videos, default-player choices, downloads, source, older versions and unknown files are preserved. If Lost Eye was your chosen default, select a replacement in Windows afterward.
+
+The uninstaller uses Windows PowerShell already supplied by Windows. Its launcher requests RemoteSigned for that process only; it does not change the saved execution policy or override Group Policy. For trusted downloaded files, unblock the ZIP before extracting if required by that policy.
 
 ## Build a portable package
 
@@ -40,7 +44,7 @@ For a deliberately named build, open PowerShell in the extracted source folder a
 .\scripts\Package-Native.ps1 -OutputName 'Lost-Eye-my-build'
 ```
 
-The result is `artifacts\Lost-Eye-my-build.zip`, containing `Lost Eye.exe`, its optional install launcher, documentation, licence and third-party notices, and matching native source in `Lost-Eye-native-source.zip`. `BUILD-INFO.json` records compiler/SDK versions and source/executable hashes; `SHA256SUMS.txt` lists the packaged files, excluding itself. A `.zip.sha256` file beside the ZIP records the archive hash. The ZIP includes neither the old VLC implementation nor Microsoft developer tools. Keep your use within [LICENSE](LICENSE).
+The result is `artifacts\Lost-Eye-my-build.zip`, containing `Lost Eye.exe`, install/uninstall launchers and the uninstall script, documentation, licence and third-party notices, and matching native source in `Lost-Eye-native-source.zip`. `BUILD-INFO.json` records compiler/SDK versions and source/executable hashes; `SHA256SUMS.txt` lists the packaged files, excluding itself. A `.zip.sha256` file beside the ZIP records the archive hash. The ZIP includes neither the old VLC implementation nor Microsoft developer tools. Keep your use within [LICENSE](LICENSE).
 
 Explicit output names never overwrite an existing build or ZIP. Choose a new name for another attempt. Packaging checks that the compiled source, icon, manifest, build script, and executable still match the recorded build. If they changed, rebuild under a new name first. Packaging uses a fresh staging folder rather than collecting unrelated files from a previous build.
 

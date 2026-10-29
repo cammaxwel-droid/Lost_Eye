@@ -160,8 +160,32 @@ static void RegisterOpenWith(HKEY root,const std::wstring& exe) {
 static fs::path KnownFolder(REFKNOWNFOLDERID id) {
     PWSTR value=nullptr;Check(SHGetKnownFolderPath(id,0,nullptr,&value));fs::path result(value);CoTaskMemFree(value);return result;
 }
+static void WriteInstallResource(const fs::path& directory,const wchar_t* name,int id) {
+    auto resource=FindResourceW(nullptr,MAKEINTRESOURCEW(id),RT_RCDATA);
+    if(!resource)throw HRESULT_FROM_WIN32(GetLastError());
+    auto size=SizeofResource(nullptr,resource);auto loaded=LoadResource(nullptr,resource);
+    if(!loaded||!size)throw E_FAIL;
+    auto data=static_cast<const char*>(LockResource(loaded));if(!data)throw E_FAIL;
+    auto path=directory/name;
+    HANDLE file=CreateFileW(path.c_str(),GENERIC_WRITE,FILE_SHARE_READ,nullptr,CREATE_NEW,FILE_ATTRIBUTE_NORMAL,nullptr);
+    if(file==INVALID_HANDLE_VALUE){
+        if(GetLastError()!=ERROR_FILE_EXISTS)throw HRESULT_FROM_WIN32(GetLastError());
+        std::ifstream existing(path,std::ios::binary);
+        if(!existing||fs::file_size(path)!=size||!std::equal(data,data+size,std::istreambuf_iterator<char>(existing)))
+            throw HRESULT_FROM_WIN32(ERROR_ALREADY_EXISTS);
+        return;
+    }
+    DWORD written=0;bool success=WriteFile(file,data,size,&written,nullptr)&&written==size;
+    auto error=success?ERROR_SUCCESS:GetLastError();CloseHandle(file);
+    if(!success){DeleteFileW(path.c_str());throw HRESULT_FROM_WIN32(error==ERROR_SUCCESS?ERROR_WRITE_FAULT:error);}
+}
 static fs::path InstallCurrentUser() {
-    auto directory=KnownFolder(FOLDERID_LocalAppData)/L"Programs"/L"Lost Eye"/L"0.3.1";
+    auto directory=KnownFolder(FOLDERID_LocalAppData)/L"Programs"/L"Lost Eye"/L"0.3.2";
+    for(auto current=directory;!current.empty();){
+        auto attributes=GetFileAttributesW(current.c_str());
+        if(attributes!=INVALID_FILE_ATTRIBUTES&&(attributes&FILE_ATTRIBUTE_REPARSE_POINT))throw HRESULT_FROM_WIN32(ERROR_CANT_ACCESS_FILE);
+        auto parent=current.parent_path();if(parent==current)break;current=parent;
+    }
     fs::create_directories(directory);auto destination=directory/L"Lost Eye.exe";auto source=fs::path(ExePath());
     if(fs::exists(destination)) {
         if(!fs::equivalent(source,destination)) {
@@ -169,6 +193,8 @@ static fs::path InstallCurrentUser() {
             if(fs::file_size(source)!=fs::file_size(destination)||!std::equal(std::istreambuf_iterator<char>(a),std::istreambuf_iterator<char>(),std::istreambuf_iterator<char>(b))) throw HRESULT_FROM_WIN32(ERROR_ALREADY_EXISTS);
         }
     } else if(!CopyFileW(source.c_str(),destination.c_str(),TRUE)) throw HRESULT_FROM_WIN32(GetLastError());
+    WriteInstallResource(directory,L"Uninstaller.cmd",101);
+    WriteInstallResource(directory,L"Uninstall-LostEye.ps1",102);
     RegisterOpenWith(HKEY_CURRENT_USER,destination.wstring());
     auto shortcut=KnownFolder(FOLDERID_Programs)/L"Lost Eye.lnk";
     if(fs::exists(shortcut)) {

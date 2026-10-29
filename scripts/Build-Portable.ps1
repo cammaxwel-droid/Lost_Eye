@@ -37,7 +37,7 @@ try {
   New-Item -ItemType Directory -Path $snapshot | Out-Null
   foreach ($folder in @('src','assets','scripts','tests','tools','licenses','legacy')) {
     Get-ChildItem -LiteralPath (Join-Path $root $folder) -File -Recurse | Where-Object {
-      $_.FullName -notmatch '[\\/](bin|obj)[\\/]' -and $_.Name -notin @('Build-Native.ps1','Package-Native.ps1')
+      $_.FullName -notmatch '[\\/](bin|obj)[\\/]' -and $_.Name -notin @('Build-Native.ps1','Package-Native.ps1','Test-Uninstall.ps1')
     } | ForEach-Object {
       $relative = $_.FullName.Substring($root.Length + 1)
       $destination = Join-Path $snapshot $relative

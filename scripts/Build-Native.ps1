@@ -1,5 +1,5 @@
 param(
-    [string]$OutputName = 'Lost-Eye-0.3.1-win-x64',
+    [string]$OutputName = 'Lost-Eye-0.3.2-win-x64',
     [switch]$WithTests,
     [switch]$TestsOnly
 )
@@ -48,7 +48,7 @@ if (!$env:WindowsSdkDir -or !$env:WindowsSDKVersion) { throw 'A Windows SDK was 
 New-Item -ItemType Directory -Path $build | Out-Null
 if (!$TestsOnly) { New-Item -ItemType Directory -Path $out | Out-Null }
 if ($WithTests -or $TestsOnly) { New-Item -ItemType Directory -Path $test | Out-Null }
-$inputs = @('native\LostEye.cpp', 'native\LostEye.rc', 'native\app.manifest', 'assets\lost-eye.ico', 'scripts\Build-Native.ps1')
+$inputs = @('native\LostEye.cpp', 'native\LostEye.rc', 'native\app.manifest', 'native\Uninstaller.cmd', 'native\Uninstall-LostEye.ps1', 'assets\lost-eye.ico', 'scripts\Build-Native.ps1')
 $inputHashes = @($inputs | ForEach-Object { [pscustomobject]@{ Path = $_; SHA256 = (Get-FileHash -LiteralPath (Join-Path $root $_) -Algorithm SHA256).Hash } })
 Push-Location (Join-Path $root 'native')
 try {
@@ -64,7 +64,9 @@ try {
         $dependencies = & dumpbin.exe /dependents $exe
         if ($LASTEXITCODE -ne 0) { throw 'Dependency inspection failed.' }
         $dependencies | Set-Content -LiteralPath (Join-Path $build 'dependencies.txt') -Encoding UTF8
-        Copy-Item -LiteralPath (Join-Path $root 'native\Install Lost Eye.cmd') -Destination $out
+        foreach ($launcher in @('Install Lost Eye.cmd','Uninstaller.cmd','Uninstall-LostEye.ps1')) {
+            Copy-Item -LiteralPath (Join-Path $root "native\$launcher") -Destination $out
+        }
         $compilerVersion = (Get-Item -LiteralPath (Get-Command cl.exe -CommandType Application).Source).VersionInfo.FileVersion
         [pscustomobject]@{
             Target = 'windows-x64'
