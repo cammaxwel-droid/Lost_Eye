@@ -1,0 +1,2 @@
+# Keep the preserved historical implementation out of current source exports.
+/legacy export-ignore

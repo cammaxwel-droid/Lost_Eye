@@ -11,8 +11,8 @@ the current native documentation and original project artwork in assets/, and
 the copyright owner's portions of binaries built from those materials.
 
 It does not replace licenses for Microsoft software or any other third-party
-material. It does not apply to the retained legacy code in src/, tests/, tools/,
-legacy/, legacy build scripts, or third-party license texts in licenses/.
+material. It does not apply to the retained code, scripts, assets, notices or
+third-party license texts in legacy/.
 Those materials retain their existing terms. See LICENSING.md.
 
 2. Personal permission

@@ -17,6 +17,12 @@ Playback results are in artifacts/Lost-Eye-0.3.2-win-x64-tests/results.txt. Inst
 
 Fresh-source results are in artifacts/Source Build Check 0.3.2 5d26ee69/artifacts/verification/. The release package includes matching native source, BUILD-INFO.json and SHA256SUMS.txt; a separate archive checksum accompanies the download.
 
-Historical native 0.3.0 playback and installation evidence remains in native/VERIFICATION.md. Legacy .NET/LibVLC evidence remains in legacy/VERIFICATION.md in the repository. These historical results are not claims of testing later versions. Legacy GPL material is unchanged by this release and is excluded from the native package.
+Historical playback and installation evidence remains in the repository's legacy/ archive, including native-0.3.0-VERIFICATION.md. These historical results are not claims of testing later versions. Earlier license grants remain in force; archived materials are excluded from the current native package.
+
+## Graphics path and repository cleanup
+
+The cleanup changes documentation and source organization, without changing the 0.3.2 player, icon or uninstall behavior. Native source requests a hardware Direct3D 11 device with video support, shares it with Media Foundation through MF_MEDIA_ENGINE_DXGI_MANAGER, and presents frames through a Direct3D swap chain. Software-device fallback remains available if creating the hardware device fails.
+
+The existing playback checks confirm the Intel UHD Graphics 620 hardware device, decoded pixels in its texture and presented frames. They do not prove that every tested format used a hardware decoder. See Microsoft's [DXGI manager documentation](https://learn.microsoft.com/en-us/windows/win32/medfound/mf-media-engine-dxgi-manager) for the hardware-acceleration interface.
 
 Other machines, fresh Windows installations, Windows N, HDR/protected video, uncommon codecs and unsigned-file prompts are not certified. Visible motion and audible A/V quality still require user acceptance with real videos. Technical output was verified, not the owner's legal entitlement or commercial chain of title.
