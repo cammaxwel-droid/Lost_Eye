@@ -145,7 +145,7 @@ function Invoke-LostEyeUninstall($Context) {
         $tempPrefix = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\') + '\'
         if (!$localRoot.StartsWith($tempPrefix, [StringComparison]::OrdinalIgnoreCase) -or !$programs.StartsWith($tempPrefix, [StringComparison]::OrdinalIgnoreCase)) { throw 'Test locations must stay inside the temporary folder.' }
     } else { throw 'Only current-user Lost Eye installation data can be removed.' }
-    $directory = Join-Path $localRoot 'Programs\Lost Eye\0.3.2'
+    $directory = Join-Path $localRoot 'Programs\Lost Eye\0.3.3'
     $executable = Join-Path $directory 'Lost Eye.exe'
     $shortcut = Join-Path $programs 'Lost Eye.lnk'
     $backup = Join-Path $directory 'Previous Lost Eye shortcut.lnk'
@@ -157,7 +157,7 @@ function Invoke-LostEyeUninstall($Context) {
     }
     if ([IO.File]::Exists($executable)) {
         $identity = [Diagnostics.FileVersionInfo]::GetVersionInfo($executable)
-        if ($identity.ProductName -ne 'Lost Eye' -or $identity.OriginalFilename -ne 'Lost Eye.exe' -or $identity.FileMajorPart -ne 0 -or $identity.FileMinorPart -ne 3 -or $identity.FileBuildPart -ne 2) { throw 'The installed executable is not the expected Lost Eye 0.3.2 file. Nothing was removed.' }
+        if ($identity.ProductName -ne 'Lost Eye' -or $identity.OriginalFilename -ne 'Lost Eye.exe' -or $identity.FileMajorPart -ne 0 -or $identity.FileMinorPart -ne 3 -or $identity.FileBuildPart -ne 3) { throw 'The installed executable is not the expected Lost Eye 0.3.3 file. Nothing was removed.' }
     }
     foreach ($name in @('Uninstaller.cmd','Uninstall-LostEye.ps1')) {
         $installed = Join-Path $directory $name
@@ -239,7 +239,7 @@ if ($MyInvocation.InvocationName -ne '.') {
         Set-Location -LiteralPath ([IO.Path]::GetTempPath())
         $result = Invoke-LostEyeUninstall (New-LostEyeUninstallContext)
         Send-LostEyeAssociationChange
-        Write-Host 'Lost Eye 0.3.2 has been uninstalled for this Windows account.'
+        Write-Host 'Lost Eye 0.3.3 has been uninstalled for this Windows account.'
         if ($result.RemainingFiles.Count) { Write-Host 'Other files or a preserved shortcut backup remain in the installation folder.' }
         Write-Host 'Other versions, your videos, and default-player choices were left unchanged.'
     } catch { $resultCode = 1; Write-Host $_.Exception.Message -ForegroundColor Red }

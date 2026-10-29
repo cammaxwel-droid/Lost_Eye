@@ -13,6 +13,7 @@
 #include <mfmediaengine.h>
 #include <mferror.h>
 #include <d3d11.h>
+#include <dwmapi.h>
 #include <d3d10.h>
 #include <dxgi1_2.h>
 #include <wrl/client.h>
@@ -28,6 +29,7 @@
 #include <fstream>
 #include <filesystem>
 #include <sstream>
+#include "FolderVideos.h"
 using Microsoft::WRL::ComPtr;
 namespace fs = std::filesystem;
 constexpr wchar_t WindowClass[] = L"LostEye.Native.0.3";
@@ -180,7 +182,7 @@ static void WriteInstallResource(const fs::path& directory,const wchar_t* name,i
     if(!success){DeleteFileW(path.c_str());throw HRESULT_FROM_WIN32(error==ERROR_SUCCESS?ERROR_WRITE_FAULT:error);}
 }
 static fs::path InstallCurrentUser() {
-    auto directory=KnownFolder(FOLDERID_LocalAppData)/L"Programs"/L"Lost Eye"/L"0.3.2";
+    auto directory=KnownFolder(FOLDERID_LocalAppData)/L"Programs"/L"Lost Eye"/L"0.3.3";
     for(auto current=directory;!current.empty();){
         auto attributes=GetFileAttributesW(current.c_str());
         if(attributes!=INVALID_FILE_ATTRIBUTES&&(attributes&FILE_ATTRIBUTE_REPARSE_POINT))throw HRESULT_FROM_WIN32(ERROR_CANT_ACCESS_FILE);
@@ -211,13 +213,14 @@ struct App {
     HWND window{},video{},open{},backButton{},rewindButton{},play{},forwardButton{},skipButton{},loopBox{},muteButton{},fullButton{},seek{},volume{},time{},name{},percent{};
     HFONT font{}; HBRUSH background=CreateSolidBrush(RGB(28,29,33)),canvas=CreateSolidBrush(RGB(19,20,23));
     UINT dpi=96; bool full=false,loop=false,muted=false,failed=false,loading=false,dragging=false,forceFrame=true,atEnd=false;
-    WINDOWPLACEMENT placement{sizeof(placement)}; std::wstring message=L"Open a video to start watching\n\nUse Open file or drop a video here.",pending,activeFile;
+    WINDOWPLACEMENT placement{sizeof(placement)}; std::wstring message=L"Open a video to start watching\n\nUse Open file or drop a video here.",pending,activeFile,navigationFile;
+    int wheelRemainder=0; bool videoPressed=false;
     FILETIME activeWrite{}; ULONGLONG activeSize=0;
     std::unique_ptr<Engine> engine; std::shared_ptr<Ready> ready=std::make_shared<Ready>();
     ULONGLONG shownAt=0,openedAt=0,lastUi=0; unsigned long long startFrame=0; bool initialized=false;
 #ifdef LOSTEYE_TEST
     std::wstring fixtures,report; int testStep=0,testFailures=0,loopCount=0; ULONGLONG testAt=0;
-    double previousTime=0,pausedTime=0;std::ofstream tests;
+    double previousTime=0,pausedTime=0;std::ofstream tests;int keyTarget=0;bool pausedBeforeInput=false;
     void TestTick();
     void Test(const char* title,bool pass) {tests<<(pass?"PASS ":"FAIL ")<<title<<"\n";tests.flush();if(!pass)++testFailures;}
 #endif
@@ -228,25 +231,28 @@ struct App {
         if(!h) throw HRESULT_FROM_WIN32(GetLastError());SendMessageW(h,WM_SETFONT,reinterpret_cast<WPARAM>(font),TRUE); return h;
     }
     void EnableTransport(bool enabled) {
-        for(HWND control:{backButton,rewindButton,play,forwardButton,skipButton,seek})if(control)EnableWindow(control,enabled);
+        for(HWND control:{rewindButton,play,forwardButton,seek})if(control)EnableWindow(control,enabled);
+        for(HWND control:{backButton,skipButton})if(control)EnableWindow(control,engine&&!loading&&!navigationFile.empty());
     }
+    void DarkFrame(){BOOL dark=TRUE;DwmSetWindowAttribute(window,DWMWA_USE_IMMERSIVE_DARK_MODE,&dark,sizeof(dark));}
     void CreateControls() {
         dpi=GetDpiForWindow(window);font=CreateFontW(-S(14),0,0,0,FW_NORMAL,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,CLEARTYPE_QUALITY,DEFAULT_PITCH,L"Segoe UI");
         video=CreateWindowExW(0,L"LostEye.VideoSurface",L"",WS_CHILD|WS_VISIBLE,0,0,1,1,window,nullptr,GetModuleHandleW(nullptr),this);
         open=Control(L"BUTTON",L"Open file",BS_OWNERDRAW|WS_TABSTOP,ID_OPEN);
         name=Control(L"STATIC",L"Lost Eye",SS_LEFT|SS_PATHELLIPSIS,0);
-        backButton=Control(L"BUTTON",L"Back to start",BS_OWNERDRAW|WS_TABSTOP,ID_BACK);
+        backButton=Control(L"BUTTON",L"Back video",BS_OWNERDRAW|WS_TABSTOP,ID_BACK);
         rewindButton=Control(L"BUTTON",L"Rewind 10s",BS_OWNERDRAW|WS_TABSTOP,ID_REWIND);
         play=Control(L"BUTTON",L"Play",BS_OWNERDRAW|WS_TABSTOP,ID_PLAY);
         forwardButton=Control(L"BUTTON",L"Forward 10s",BS_OWNERDRAW|WS_TABSTOP,ID_FORWARD);
-        skipButton=Control(L"BUTTON",L"Skip to end",BS_OWNERDRAW|WS_TABSTOP,ID_SKIP);
+        skipButton=Control(L"BUTTON",L"Skip video",BS_OWNERDRAW|WS_TABSTOP,ID_SKIP);
         loopBox=Control(L"BUTTON",L"Loop",BS_AUTOCHECKBOX|WS_TABSTOP,ID_LOOP);
+        SetWindowSubclass(loopBox,LoopProc,1,reinterpret_cast<DWORD_PTR>(this));
         muteButton=Control(L"BUTTON",L"Mute",BS_OWNERDRAW|WS_TABSTOP,ID_MUTE);
         fullButton=Control(L"BUTTON",L"Full screen",BS_OWNERDRAW|WS_TABSTOP,ID_FULL);
         seek=Control(TRACKBAR_CLASSW,L"Seek",TBS_HORZ|TBS_NOTICKS|WS_TABSTOP,ID_SEEK);SendMessageW(seek,TBM_SETRANGE,TRUE,MAKELPARAM(0,10000));SendMessageW(seek,TBM_SETPAGESIZE,0,500);
         volume=Control(TRACKBAR_CLASSW,L"Volume",TBS_HORZ|TBS_NOTICKS|WS_TABSTOP,ID_VOLUME);SendMessageW(volume,TBM_SETRANGE,TRUE,MAKELPARAM(0,100));SendMessageW(volume,TBM_SETPOS,TRUE,80);
         time=Control(L"STATIC",L"0:00 / 0:00",SS_RIGHT,0);percent=Control(L"STATIC",L"80%",SS_LEFT,0);
-        EnableTransport(false);DragAcceptFiles(window,TRUE);DragAcceptFiles(video,TRUE); Layout();
+        DarkFrame();EnableTransport(false);DragAcceptFiles(window,TRUE);DragAcceptFiles(video,TRUE); Layout();
     }
     void Layout() {
         if(!video) return;RECT r{};GetClientRect(window,&r);int w=r.right,h=r.bottom;
@@ -289,7 +295,10 @@ struct App {
     void Fail(const std::wstring& value){failed=true;loading=false;atEnd=false;activeFile.clear();if(engine)engine->media->Pause();EnableTransport(false);SetWindowTextW(play,L"Play");Status(value+L"\n\nUse Open file to choose another video.");}
     void Open(const std::wstring& path) {
         if(path.empty())return;
-        std::wstring file;try{file=fs::absolute(path).wstring();}catch(...){Fail(L"This file path is invalid.");return;}
+        std::wstring file;try{file=fs::absolute(path).lexically_normal().wstring();}catch(...){Fail(L"This file path is invalid.");return;}
+        DWORD attributes=GetFileAttributesW(file.c_str());
+        if(attributes!=INVALID_FILE_ATTRIBUTES&&(attributes&FILE_ATTRIBUTE_DIRECTORY)){Fail(L"Choose a video file, not a folder.");return;}
+        navigationFile=file;
         SetWindowTextW(name,fs::path(file).filename().c_str());SetWindowTextW(window,(fs::path(file).filename().wstring()+L" - Lost Eye").c_str());
         if(!engine){pending=file;Status(initialized?L"The Windows playback engine is unavailable.":L"Starting video playback...");return;}
         engine->media->Pause();failed=false;loading=true;dragging=false;forceFrame=true;atEnd=false;startFrame=engine->frames;openedAt=GetTickCount64();
@@ -332,8 +341,45 @@ struct App {
     void BackToStart(){SeekTime(0);}
     void JumpBy(double seconds){if(!engine||failed||loading)return;double current=atEnd?engine->media->GetDuration():engine->media->GetCurrentTime();SeekTime(current+seconds);}
     void SkipToEnd(){if(engine)SeekTime(engine->media->GetDuration(),true);}
+    void AdjacentVideo(int direction){
+        if(!engine||loading||navigationFile.empty())return;
+        auto next=LostEyeFiles::AdjacentVideo(navigationFile,direction);
+        if(!next.error.empty()){MessageBoxW(window,next.error.c_str(),L"Lost Eye",MB_OK|MB_ICONINFORMATION);return;}
+        if(!next.path.empty())Open(next.path);
+    }
+    void WheelVolume(int delta){
+        wheelRemainder+=delta;int steps=wheelRemainder/WHEEL_DELTA;wheelRemainder%=WHEEL_DELTA;
+        if(!steps)return;int before=static_cast<int>(SendMessageW(volume,TBM_GETPOS,0,0));int after=std::clamp(before+steps*5,0,100);
+        if(after==before)return;SendMessageW(volume,TBM_SETPOS,TRUE,after);muted=false;ApplyVolume();
+    }
     void ApplyVolume(){int v=static_cast<int>(SendMessageW(volume,TBM_GETPOS,0,0));if(engine){engine->media->SetVolume(v/100.0);engine->media->SetMuted(muted||v==0);}SetWindowTextW(muteButton,muted||v==0?L"Unmute":L"Mute");SetWindowTextW(percent,(std::to_wstring(v)+L"%").c_str());}
-    void SetLoop(bool value){loop=value;SendMessageW(loopBox,BM_SETCHECK,loop?BST_CHECKED:BST_UNCHECKED,0);if(engine)engine->media->SetLoop(loop);}
+    void SetLoop(bool value){loop=value;SendMessageW(loopBox,BM_SETCHECK,loop?BST_CHECKED:BST_UNCHECKED,0);InvalidateRect(loopBox,nullptr,FALSE);if(engine)engine->media->SetLoop(loop);}
+    bool HandleInput(const MSG& msg){
+        if(msg.hwnd!=window&&!IsChild(window,msg.hwnd))return false;
+        if(msg.message==WM_MOUSEWHEEL){POINT point{GET_X_LPARAM(msg.lParam),GET_Y_LPARAM(msg.lParam)};RECT bounds{};GetWindowRect(window,&bounds);if(PtInRect(&bounds,point)){WheelVolume(GET_WHEEL_DELTA_WPARAM(msg.wParam));return true;}return false;}
+        const bool transportKey=msg.wParam==VK_SPACE||msg.wParam==VK_LEFT||msg.wParam==VK_RIGHT;
+        if(msg.message==WM_KEYUP&&transportKey)return true;
+        if(msg.message==WM_CHAR&&msg.wParam==L' ')return true;
+        if(msg.message!=WM_KEYDOWN)return false;
+        if(transportKey){
+            // Swallow both halves of these keys before buttons/sliders see them.
+            // A held key must not repeatedly toggle or race through the folder.
+            if(!(msg.lParam&(1LL<<30))){if(msg.wParam==VK_SPACE)TogglePlay();else AdjacentVideo(msg.wParam==VK_LEFT?-1:1);}
+            return true;
+        }
+        if(msg.lParam&(1LL<<30))return false;
+        const bool ctrl=(GetKeyState(VK_CONTROL)&0x8000)!=0;
+        switch(msg.wParam){
+        case 'O':if(ctrl){Choose();return true;}break;
+        case VK_F11:case 'F':Fullscreen();return true;
+        case VK_ESCAPE:if(full){Fullscreen();return true;}break;
+        case 'M':muted=!muted;ApplyVolume();return true;
+        case 'L':SetLoop(!loop);return true;
+        case VK_HOME:BackToStart();return true;
+        case VK_END:SkipToEnd();return true;
+        }
+        return false;
+    }
     void UpdateUi(){
         if(!engine||failed)return;auto m=engine->media.Get();double d=m->GetDuration(),t=m->GetCurrentTime();
         if(std::isfinite(d)&&d>0){if(atEnd)t=d;if(!dragging)SendMessageW(seek,TBM_SETPOS,TRUE,static_cast<LPARAM>(std::clamp(t/d,0.0,1.0)*10000));else t=SendMessageW(seek,TBM_GETPOS,0,0)*d/10000.;SetWindowTextW(time,(TimeText(t)+L" / "+TimeText(d)).c_str());}
@@ -368,11 +414,32 @@ struct App {
         wchar_t text[64]{};GetWindowTextW(d->hwndItem,text,64);DrawTextW(d->hDC,text,-1,&d->rcItem,DT_CENTER|DT_VCENTER|DT_SINGLELINE);
         if(d->itemState&ODS_FOCUS){RECT focus=d->rcItem;InflateRect(&focus,-3,-3);DrawFocusRect(d->hDC,&focus);}
     }
+    void DrawLoop(HWND h,HDC dc){
+        RECT r{};GetClientRect(h,&r);FillRect(dc,&r,background);int side=S(16);RECT box{S(2),(r.bottom-side)/2,S(2)+side,(r.bottom+side)/2};
+        HBRUSH inside=CreateSolidBrush(RGB(47,49,55));FillRect(dc,&box,inside);DeleteObject(inside);
+        HBRUSH edge=CreateSolidBrush(RGB(170,173,183));FrameRect(dc,&box,edge);DeleteObject(edge);
+        if(SendMessageW(h,BM_GETCHECK,0,0)==BST_CHECKED){HPEN pen=CreatePen(PS_SOLID,std::max(1,S(2)),RGB(235,235,240));auto previous=SelectObject(dc,pen);MoveToEx(dc,box.left+S(3),box.top+S(8),nullptr);LineTo(dc,box.left+S(7),box.top+S(12));LineTo(dc,box.left+S(13),box.top+S(4));SelectObject(dc,previous);DeleteObject(pen);}
+        RECT label=r;label.left=box.right+S(7);SetBkMode(dc,TRANSPARENT);SetTextColor(dc,RGB(235,235,240));auto oldFont=SelectObject(dc,font);DrawTextW(dc,L"Loop",-1,&label,DT_LEFT|DT_VCENTER|DT_SINGLELINE);SelectObject(dc,oldFont);
+        if(GetFocus()==h){InflateRect(&label,-1,-S(6));DrawFocusRect(dc,&label);}
+    }
+    static LRESULT CALLBACK LoopProc(HWND h,UINT msg,WPARAM w,LPARAM l,UINT_PTR id,DWORD_PTR data){
+        auto a=reinterpret_cast<App*>(data);
+        if(msg==WM_PAINT){PAINTSTRUCT ps{};HDC dc=BeginPaint(h,&ps);a->DrawLoop(h,dc);EndPaint(h,&ps);return 0;}
+        if(msg==WM_PRINTCLIENT){a->DrawLoop(h,reinterpret_cast<HDC>(w));return 0;}
+        if(msg==WM_ERASEBKGND)return 1;
+        auto result=DefSubclassProc(h,msg,w,l);
+        if(msg==BM_SETCHECK||msg==WM_SETFOCUS||msg==WM_KILLFOCUS||msg==WM_ENABLE||msg==WM_THEMECHANGED||msg==WM_UPDATEUISTATE)InvalidateRect(h,nullptr,FALSE);
+        if(msg==WM_NCDESTROY)RemoveWindowSubclass(h,LoopProc,id);
+        return result;
+    }
     static LRESULT CALLBACK VideoProc(HWND h,UINT msg,WPARAM w,LPARAM l){
         App* a=reinterpret_cast<App*>(GetWindowLongPtrW(h,GWLP_USERDATA));if(msg==WM_NCCREATE){a=static_cast<App*>(reinterpret_cast<CREATESTRUCTW*>(l)->lpCreateParams);SetWindowLongPtrW(h,GWLP_USERDATA,reinterpret_cast<LONG_PTR>(a));}
         if(!a)return DefWindowProcW(h,msg,w,l);
         if(msg==WM_PAINT){PAINTSTRUCT ps{};HDC dc=BeginPaint(h,&ps);if(!a->message.empty()){RECT r{};GetClientRect(h,&r);FillRect(dc,&r,a->canvas);SelectObject(dc,a->font);SetBkMode(dc,TRANSPARENT);SetTextColor(dc,RGB(216,218,224));RECT text=r;InflateRect(&text,-a->S(30),0);DrawTextW(dc,a->message.c_str(),-1,&text,DT_CENTER|DT_WORDBREAK|DT_CALCRECT);int height=text.bottom-text.top;text.top=(r.bottom-height)/2;text.bottom=text.top+height;text.left=a->S(30);text.right=r.right-a->S(30);DrawTextW(dc,a->message.c_str(),-1,&text,DT_CENTER|DT_WORDBREAK);}EndPaint(h,&ps);a->forceFrame=true;return 0;}
-        if(msg==WM_ERASEBKGND)return 1;if(msg==WM_LBUTTONDBLCLK){a->Fullscreen();return 0;}if(msg==WM_LBUTTONDOWN){SetFocus(a->window);return 0;}
+        if(msg==WM_ERASEBKGND)return 1;
+        if(msg==WM_LBUTTONDOWN){a->videoPressed=true;SetFocus(a->window);SetCapture(h);return 0;}
+        if(msg==WM_LBUTTONUP){bool pressed=a->videoPressed;a->videoPressed=false;if(GetCapture()==h)ReleaseCapture();RECT r{};GetClientRect(h,&r);POINT point{GET_X_LPARAM(l),GET_Y_LPARAM(l)};if(pressed&&PtInRect(&r,point))a->TogglePlay();return 0;}
+        if(msg==WM_CAPTURECHANGED){a->videoPressed=false;return 0;}
         if(msg==WM_DROPFILES){a->Drop(reinterpret_cast<HDROP>(w));return 0;}return DefWindowProcW(h,msg,w,l);
     }
     static LRESULT CALLBACK Proc(HWND h,UINT msg,WPARAM w,LPARAM l){
@@ -385,9 +452,10 @@ struct App {
         case WM_MEDIA:a->OnMedia(static_cast<DWORD>(w));return 0;
         case WM_TIMER:a->Tick();return 0;
         case WM_SIZE:a->Layout();return 0;
+        case WM_SETTINGCHANGE:case WM_THEMECHANGED:a->DarkFrame();if(a->loopBox)InvalidateRect(a->loopBox,nullptr,FALSE);return 0;
         case WM_DPICHANGED:{a->dpi=HIWORD(w);if(a->font)DeleteObject(a->font);a->font=CreateFontW(-a->S(14),0,0,0,FW_NORMAL,0,0,0,DEFAULT_CHARSET,0,0,CLEARTYPE_QUALITY,0,L"Segoe UI");for(HWND child=GetWindow(h,GW_CHILD);child;child=GetWindow(child,GW_HWNDNEXT))SendMessageW(child,WM_SETFONT,reinterpret_cast<WPARAM>(a->font),TRUE);auto r=reinterpret_cast<RECT*>(l);SetWindowPos(h,nullptr,r->left,r->top,r->right-r->left,r->bottom-r->top,SWP_NOZORDER);a->Layout();return 0;}
         case WM_GETMINMAXINFO:reinterpret_cast<MINMAXINFO*>(l)->ptMinTrackSize={a->S(700),a->S(420)};return 0;
-        case WM_COMMAND:switch(LOWORD(w)){case ID_OPEN:a->Choose();break;case ID_BACK:a->BackToStart();break;case ID_REWIND:a->JumpBy(-10);break;case ID_PLAY:a->TogglePlay();break;case ID_FORWARD:a->JumpBy(10);break;case ID_SKIP:a->SkipToEnd();break;case ID_LOOP:a->SetLoop(SendMessageW(a->loopBox,BM_GETCHECK,0,0)==BST_CHECKED);break;case ID_MUTE:a->muted=!a->muted;a->ApplyVolume();break;case ID_FULL:a->Fullscreen();break;}return 0;
+        case WM_COMMAND:switch(LOWORD(w)){case ID_OPEN:a->Choose();break;case ID_BACK:a->AdjacentVideo(-1);break;case ID_REWIND:a->JumpBy(-10);break;case ID_PLAY:a->TogglePlay();break;case ID_FORWARD:a->JumpBy(10);break;case ID_SKIP:a->AdjacentVideo(1);break;case ID_LOOP:a->SetLoop(SendMessageW(a->loopBox,BM_GETCHECK,0,0)==BST_CHECKED);break;case ID_MUTE:a->muted=!a->muted;a->ApplyVolume();break;case ID_FULL:a->Fullscreen();break;}return 0;
         case WM_HSCROLL:if(reinterpret_cast<HWND>(l)==a->volume){a->muted=false;a->ApplyVolume();}else if(reinterpret_cast<HWND>(l)==a->seek){if(LOWORD(w)==TB_THUMBTRACK)a->dragging=true;else{a->dragging=false;a->Seek(SendMessageW(a->seek,TBM_GETPOS,0,0)/10000.);}a->UpdateUi();}return 0;
         case WM_DRAWITEM:a->DrawButton(reinterpret_cast<DRAWITEMSTRUCT*>(l));return TRUE;
         case WM_CTLCOLORSTATIC:case WM_CTLCOLORBTN:SetBkColor(reinterpret_cast<HDC>(w),RGB(28,29,33));SetTextColor(reinterpret_cast<HDC>(w),RGB(235,235,240));return reinterpret_cast<LRESULT>(a->background);
@@ -405,6 +473,9 @@ void App::TestTick(){
     auto next=[&](int step){testStep=step;testAt=now;};
     auto file=[&](const wchar_t* name){return (fs::path(fixtures)/name).wstring();};
     auto click=[&](int id,HWND control){SendMessageW(window,WM_COMMAND,MAKEWPARAM(id,BN_CLICKED),reinterpret_cast<LPARAM>(control));};
+    auto key=[&](HWND target,UINT value,bool repeat=false){SetFocus(target);PostMessageW(target,WM_KEYDOWN,value,1);if(repeat)PostMessageW(target,WM_KEYDOWN,value,1|(1LL<<30));PostMessageW(target,WM_KEYUP,value,1|(3LL<<30));};
+    auto wheel=[&](HWND target,short delta){POINT point{S(25),S(25)};ClientToScreen(video,&point);PostMessageW(target,WM_MOUSEWHEEL,MAKEWPARAM(0,static_cast<WORD>(delta)),MAKELPARAM(point.x,point.y));};
+    const HWND keyTargets[]={open,backButton,rewindButton,play,forwardButton,skipButton,loopBox,muteButton,fullButton,seek,volume,video,window};
     if(fixtures==L"--close-during-init"){if(now-shownAt>200){Test("Close during engine startup",!engine&&IsWindowVisible(window));DestroyWindow(window);}return;}
     if(testStep>0&&elapsed>45000){Test("Step timed out",false);DestroyWindow(window);return;}
     switch(testStep){
@@ -415,7 +486,7 @@ void App::TestTick(){
         wchar_t result[256]{};DWORD size=sizeof(result);RegGetValueW(sandbox,L"Software\\Classes\\.mp4",nullptr,RRF_RT_REG_SZ,nullptr,result,&size);Test("Open with preserves existing default",std::wstring(result)==L"Existing.Player");
         size=sizeof(result);RegGetValueW(sandbox,L"Software\\Classes\\Applications\\Lost Eye.exe\\shell\\open\\command",nullptr,RRF_RT_REG_SZ,nullptr,result,&size);Test("Open with quotes paths",std::wstring(result)==L"\"C:\\Example folder\\Lost Eye.exe\" \"%1\"");RegCloseKey(sandbox);RegDeleteTreeW(HKEY_CURRENT_USER,key.c_str());
         Open(file(L"missing.mp4"));Test("Missing file is handled",failed);Open(file(L"empty.mp4"));Test("Empty file is handled",failed);Open(file(L"damaged.mp4"));next(2);}break;
-    case 2:if(failed){Test("Damaged file is handled",true);Test("Transport disabled after an error",!IsWindowEnabled(backButton)&&!IsWindowEnabled(rewindButton)&&!IsWindowEnabled(play)&&!IsWindowEnabled(forwardButton)&&!IsWindowEnabled(skipButton));Open(file(L"sample video.mp4"));next(3);}break;
+    case 2:if(failed){Test("Damaged file is handled",true);Test("Playback controls disabled after an error",!IsWindowEnabled(rewindButton)&&!IsWindowEnabled(play)&&!IsWindowEnabled(forwardButton));Test("Folder navigation available after an error",IsWindowEnabled(backButton)&&IsWindowEnabled(skipButton));Open(file(L"sample video.mp4"));next(3);}break;
     case 3:if(engine->frames>startFrame+4&&!loading){Test("MP4 opens after errors",!failed&&engine->media->GetCurrentTime()>0);Test("Decoded pixels reached Direct3D texture",engine->FrameHasPixels());Test("Frames presented to window",engine->frames>startFrame+4);muted=true;ApplyVolume();Test("Mute",engine->media->GetMuted());muted=false;SendMessageW(volume,TBM_SETPOS,TRUE,35);ApplyVolume();Test("Volume and unmute",std::abs(engine->media->GetVolume()-.35)<.01&&!engine->media->GetMuted());TogglePlay();next(4);}break;
     case 4:if(elapsed>400){pausedTime=engine->media->GetCurrentTime();next(5);}break;
     case 5:if(elapsed>600){Test("Pause holds position",engine->media->IsPaused()&&std::abs(pausedTime-engine->media->GetCurrentTime())<.15);Seek(.5);TogglePlay();next(6);}break;
@@ -424,9 +495,9 @@ void App::TestTick(){
         RECT back{},rewind{},playRect{},forward{},skip{};GetWindowRect(backButton,&back);GetWindowRect(rewindButton,&rewind);GetWindowRect(play,&playRect);GetWindowRect(forwardButton,&forward);GetWindowRect(skipButton,&skip);
         Test("Transport buttons visible",IsWindowVisible(backButton)&&IsWindowVisible(rewindButton)&&IsWindowVisible(play)&&IsWindowVisible(forwardButton)&&IsWindowVisible(skipButton));
         Test("Transport buttons fit without overlap",back.right<=rewind.left&&rewind.right<=playRect.left&&playRect.right<=forward.left&&forward.right<=skip.left);
-        click(ID_BACK,backButton);next(16);
+        key(play,VK_HOME);next(16);
     }break;
-    case 7:{double t=engine->media->GetCurrentTime();if(previousTime>5&&t<2)++loopCount;previousTime=t;if(loopCount>=2){Test("Whole video loops twice",true);SetLoop(false);Seek(.85);next(8);}break;}
+    case 7:{double t=engine->media->GetCurrentTime();if(previousTime>5&&t<2)++loopCount;previousTime=t;if(loopCount>=2){Test("Whole video loops twice",true);Test("Loop stays on the current video",activeFile==file(L"sample video.mp4"));SetLoop(false);Seek(.85);next(8);}break;}
     case 8:if(engine->media->IsEnded()){Test("Loop off stops at end",true);next(9);}break;
     case 9:if(elapsed>600){Test("Remains stopped",engine->media->IsEnded()&&engine->media->IsPaused());TogglePlay();next(10);}break;
     case 10:if(engine->media->GetCurrentTime()>.2&&!engine->media->IsPaused()){Test("Replay",true);Open(file(L"sample.mkv"));next(11);}break;
@@ -434,15 +505,38 @@ void App::TestTick(){
     case 12:if(failed||(!loading&&engine->frames>startFrame+3)){Test("WebM renders or clearly reports unavailable OS codec",failed||engine->frames>startFrame+3);tests<<"WEBM "<<(failed?"UNSUPPORTED":"RENDERED")<<"\n";Open(file(L"sample video.mp4"));next(13);}break;
     case 13:if(!loading&&engine->frames>startFrame+3){Test("Reopen MP4 1",!failed);Open(file(L"sample video.mp4"));next(14);}break;
     case 14:if(!loading&&engine->frames>startFrame+3){Test("Reopen MP4 2",!failed);Open(file(L"sample video.mp4"));next(15);}break;
-    case 15:if(!loading&&engine->frames>startFrame+3){Test("Reopen MP4 3",!failed);Test("No renderer error",SUCCEEDED(engine->lastRender));tests<<"FRAMES "<<engine->frames<<"\nFAILURES "<<testFailures<<"\n";tests.flush();DestroyWindow(window);}break;
-    case 16:if(elapsed>350){Test("Back button returns to start",engine->media->IsPaused()&&engine->media->GetCurrentTime()<.2&&!atEnd);engine->media->SetCurrentTime(std::min(4.0,engine->media->GetDuration()/2));next(17);}break;
+    case 15:if(!loading&&engine->frames>startFrame+3){Test("Reopen MP4 3",!failed);Test("No renderer error",SUCCEEDED(engine->lastRender));TogglePlay();Fullscreen();keyTarget=0;next(24);}break;
+    case 16:if(elapsed>350){Test("Home seeks to start",engine->media->IsPaused()&&engine->media->GetCurrentTime()<.2&&!atEnd);engine->media->SetCurrentTime(std::min(4.0,engine->media->GetDuration()/2));next(17);}break;
     case 17:if(elapsed>350){click(ID_REWIND,rewindButton);next(18);}break;
     case 18:if(elapsed>350){Test("Rewind button moves back 10 seconds",engine->media->IsPaused()&&engine->media->GetCurrentTime()<.2&&!atEnd);click(ID_FORWARD,forwardButton);next(19);}break;
-    case 19:if(elapsed>350){double duration=engine->media->GetDuration();Test("Fast forward button moves ahead 10 seconds",engine->media->IsPaused()&&atEnd&&engine->media->GetCurrentTime()>=duration-.2);click(ID_BACK,backButton);next(20);}break;
-    case 20:if(elapsed>350){Test("Back works after reaching the end",engine->media->IsPaused()&&engine->media->GetCurrentTime()<.2&&!atEnd);click(ID_SKIP,skipButton);next(21);}break;
-    case 21:if(elapsed>350){double duration=engine->media->GetDuration();Test("Skip button jumps to the end",engine->media->IsPaused()&&atEnd&&engine->media->GetCurrentTime()>=duration-.2);click(ID_PLAY,play);next(22);}break;
-    case 22:if(engine->media->GetCurrentTime()>.2&&!engine->media->IsPaused()){Test("Play restarts after Skip",!atEnd);Seek(.5);next(23);}break;
+    case 19:if(elapsed>350){double duration=engine->media->GetDuration();Test("Fast forward button moves ahead 10 seconds",engine->media->IsPaused()&&atEnd&&engine->media->GetCurrentTime()>=duration-.2);key(play,VK_HOME);next(20);}break;
+    case 20:if(elapsed>350){Test("Home works after reaching the end",engine->media->IsPaused()&&engine->media->GetCurrentTime()<.2&&!atEnd);key(play,VK_END);next(21);}break;
+    case 21:if(elapsed>350){double duration=engine->media->GetDuration();Test("End seeks to the end",engine->media->IsPaused()&&atEnd&&engine->media->GetCurrentTime()>=duration-.2);click(ID_PLAY,play);next(22);}break;
+    case 22:if(engine->media->GetCurrentTime()>.2&&!engine->media->IsPaused()){Test("Play restarts after End",!atEnd);Seek(.5);next(23);}break;
     case 23:if(engine->media->GetCurrentTime()>3.5&&!engine->media->IsPaused()){RECT before{};GetWindowRect(window,&before);Fullscreen();Test("Fullscreen entered",full&&!(GetWindowLongPtrW(window,GWL_STYLE)&WS_OVERLAPPEDWINDOW));Fullscreen();RECT after{};GetWindowRect(window,&after);Test("Fullscreen restores bounds",!full&&EqualRect(&before,&after));SetWindowPos(window,nullptr,0,0,S(720),S(450),SWP_NOMOVE|SWP_NOZORDER);Test("Resize keeps frame rendering",engine->Render(true));SetLoop(true);Seek(.85);previousTime=engine->media->GetCurrentTime();loopCount=0;next(7);}break;
+    case 24:pausedBeforeInput=engine->media->IsPaused();key(keyTargets[keyTarget],VK_SPACE,true);next(25);break;
+    case 25:if(elapsed>180){std::string label="Space toggles once with focus target "+std::to_string(keyTarget);Test(label.c_str(),engine->media->IsPaused()!=pausedBeforeInput&&full&&!loop&&activeFile==file(L"sample video.mp4")&&SendMessageW(volume,TBM_GETPOS,0,0)==35);key(keyTargets[keyTarget],VK_SPACE);next(26);}break;
+    case 26:if(elapsed>180){Test("Space key-up does not activate focused control",engine->media->IsPaused()==pausedBeforeInput&&full&&!loop);if(++keyTarget<static_cast<int>(std::size(keyTargets))){next(24);break;}Fullscreen();
+        SendMessageW(video,WM_LBUTTONDOWN,MK_LBUTTON,MAKELPARAM(20,20));SendMessageW(video,WM_LBUTTONUP,0,MAKELPARAM(20,20));Test("Video click resumes",!engine->media->IsPaused());
+        SendMessageW(video,WM_LBUTTONDOWN,MK_LBUTTON,MAKELPARAM(20,20));SendMessageW(video,WM_LBUTTONUP,0,MAKELPARAM(20,20));Test("Second video click pauses without fullscreen",engine->media->IsPaused()&&!full);
+        HDC screen=GetDC(loopBox),memory=CreateCompatibleDC(screen);HBITMAP bitmap=CreateCompatibleBitmap(screen,S(74),S(34));auto old=SelectObject(memory,bitmap);SendMessageW(loopBox,WM_PRINTCLIENT,reinterpret_cast<WPARAM>(memory),PRF_CLIENT);bool light=false;for(int y=S(5);y<S(29);++y)for(int x=S(25);x<S(70);++x){COLORREF p=GetPixel(memory,x,y);if(p!=CLR_INVALID&&GetRValue(p)>200&&GetGValue(p)>200&&GetBValue(p)>200)light=true;}Test("Loop label paints light text on dark background",light&&GetPixel(memory,0,0)==RGB(28,29,33));SelectObject(memory,old);DeleteObject(bitmap);DeleteDC(memory);ReleaseDC(loopBox,screen);
+        BOOL dark=FALSE;Test("Dark title bar stays enabled",SUCCEEDED(DwmGetWindowAttribute(window,DWMWA_USE_IMMERSIVE_DARK_MODE,&dark,sizeof(dark)))&&dark);pausedTime=engine->media->GetCurrentTime();wheel(seek,120);next(27);
+    }break;
+    case 27:if(elapsed>180){Test("Wheel over seek raises volume without seeking",SendMessageW(volume,TBM_GETPOS,0,0)==40&&std::abs(engine->media->GetCurrentTime()-pausedTime)<.15);wheel(volume,-120);next(28);}break;
+    case 28:if(elapsed>180){Test("Wheel over volume lowers by five without double handling",SendMessageW(volume,TBM_GETPOS,0,0)==35);wheel(video,40);wheel(video,40);next(29);}break;
+    case 29:if(elapsed>180){Test("Partial wheel deltas accumulate",SendMessageW(volume,TBM_GETPOS,0,0)==35);wheel(video,40);next(30);}break;
+    case 30:if(elapsed>180){Test("Accumulated wheel notch changes volume",SendMessageW(volume,TBM_GETPOS,0,0)==40);SendMessageW(volume,TBM_SETPOS,TRUE,95);muted=true;ApplyVolume();wheel(fullButton,240);next(31);}break;
+    case 31:if(elapsed>180){Test("Wheel clamps at 100 and unmutes",SendMessageW(volume,TBM_GETPOS,0,0)==100&&!muted&&!engine->media->GetMuted());wheel(window,-2400);next(32);}break;
+    case 32:if(elapsed>180){Test("Wheel clamps at zero and mutes",SendMessageW(volume,TBM_GETPOS,0,0)==0&&engine->media->GetMuted());SendMessageW(volume,TBM_SETPOS,TRUE,35);ApplyVolume();Open(file(L"navigation\\clip 2.mp4"));next(33);}break;
+    case 33:if(!loading&&!failed&&engine->frames>startFrame+3){click(ID_BACK,backButton);next(34);}break;
+    case 34:if(!loading&&!failed&&engine->frames>startFrame+3){Test("Back opens previous video in same folder",activeFile==file(L"navigation\\clip 1.mp4"));key(fullButton,VK_LEFT);next(35);}break;
+    case 35:if(elapsed>180){Test("Left at first video stays in same folder",activeFile==file(L"navigation\\clip 1.mp4")&&!full);key(seek,VK_RIGHT);next(36);}break;
+    case 36:if(!loading&&!failed&&engine->frames>startFrame+3){Test("Right with seek focus opens next video",activeFile==file(L"navigation\\clip 2.mp4"));click(ID_SKIP,skipButton);next(37);}break;
+    case 37:if(!loading&&!failed&&engine->frames>startFrame+3){Test("Skip opens natural-order next video",activeFile==file(L"navigation\\clip 10.mp4"));click(ID_SKIP,skipButton);key(volume,VK_RIGHT);next(38);}break;
+    case 38:if(elapsed>180){Test("Skip and Right at last video never enter other folders",activeFile==file(L"navigation\\clip 10.mp4"));key(volume,VK_LEFT,true);next(39);}break;
+    case 39:if(!loading&&!failed&&engine->frames>startFrame+3){Test("Left with volume focus opens exactly one previous video",activeFile==file(L"navigation\\clip 2.mp4"));Open(file(L"recovery\\clip 1.mp4"));next(40);}break;
+    case 40:if(failed){Test("Bad neighboring file gives clear error with navigation available",!message.empty()&&IsWindowEnabled(skipButton));key(skipButton,VK_RIGHT);next(41);}break;
+    case 41:if(!loading&&!failed&&engine->frames>startFrame+3){Test("Right recovers from bad video within its folder",activeFile==file(L"recovery\\clip 2.mp4"));Test("No renderer error after folder navigation",SUCCEEDED(engine->lastRender));tests<<"FRAMES "<<engine->frames<<"\nFAILURES "<<testFailures<<"\n";tests.flush();DestroyWindow(window);}break;
     }
 }
 #endif
@@ -495,7 +589,7 @@ int WINAPI wWinMain(HINSTANCE instance,HINSTANCE,LPWSTR,int show){
     try {
         INITCOMMONCONTROLSEX controls{sizeof(controls),ICC_BAR_CLASSES|ICC_STANDARD_CLASSES};InitCommonControlsEx(&controls);
         WNDCLASSEXW cls{sizeof(cls)};cls.lpfnWndProc=App::Proc;cls.hInstance=instance;cls.hIcon=LoadIconW(instance,MAKEINTRESOURCEW(1));cls.hIconSm=cls.hIcon;cls.hCursor=LoadCursorW(nullptr,IDC_ARROW);cls.lpszClassName=WindowClass;RegisterClassExW(&cls);
-        WNDCLASSEXW vc{sizeof(vc)};vc.style=CS_DBLCLKS;vc.lpfnWndProc=App::VideoProc;vc.hInstance=instance;vc.hCursor=cls.hCursor;vc.lpszClassName=L"LostEye.VideoSurface";RegisterClassExW(&vc);
+        WNDCLASSEXW vc{sizeof(vc)};vc.lpfnWndProc=App::VideoProc;vc.hInstance=instance;vc.hCursor=cls.hCursor;vc.lpszClassName=L"LostEye.VideoSurface";RegisterClassExW(&vc);
         App app;
 #ifdef LOSTEYE_TEST
         app.fixtures=path;app.report=argc>2?argv[2]:L"native-tests.txt";app.tests.open(fs::path(app.report));
@@ -506,16 +600,7 @@ int WINAPI wWinMain(HINSTANCE instance,HINSTANCE,LPWSTR,int show){
         HWND window=CreateWindowExW(WS_EX_ACCEPTFILES,WindowClass,L"Lost Eye",WS_OVERLAPPEDWINDOW|WS_CLIPCHILDREN,CW_USEDEFAULT,CW_USEDEFAULT,r.right-r.left,r.bottom-r.top,nullptr,nullptr,instance,&app);
         if(!window)throw HRESULT_FROM_WIN32(GetLastError());ShowWindow(window,show);if(!app.pending.empty())app.Open(app.pending);UpdateWindow(window);app.shownAt=GetTickCount64();PostMessageW(window,WM_START,0,0);
         MSG msg{};while(GetMessageW(&msg,nullptr,0,0)>0){
-            bool consumed=false;
-            if(msg.message==WM_KEYDOWN&&(msg.hwnd==window||IsChild(window,msg.hwnd))){
-                bool ctrl=(GetKeyState(VK_CONTROL)&0x8000)!=0;
-                switch(msg.wParam){case 'O':if(ctrl){app.Choose();consumed=true;}break;case VK_F11:case 'F':app.Fullscreen();consumed=true;break;case VK_ESCAPE:if(app.full){app.Fullscreen();consumed=true;}break;case 'M':app.muted=!app.muted;app.ApplyVolume();consumed=true;break;case 'L':app.SetLoop(!app.loop);consumed=true;break;
-                case VK_SPACE:if(msg.hwnd==window||msg.hwnd==app.video){app.TogglePlay();consumed=true;}break;
-                case VK_LEFT:case VK_RIGHT:if(msg.hwnd!=app.seek&&msg.hwnd!=app.volume){app.JumpBy(msg.wParam==VK_LEFT?-10:10);consumed=true;}break;
-                case VK_HOME:app.BackToStart();consumed=true;break;
-                case VK_END:app.SkipToEnd();consumed=true;break;
-                }
-            }
+            bool consumed=app.HandleInput(msg);
             if(!consumed&&!IsDialogMessageW(window,&msg)){TranslateMessage(&msg);DispatchMessageW(&msg);}
         }
 #ifdef LOSTEYE_TEST
