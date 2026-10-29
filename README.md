@@ -1,4 +1,4 @@
-﻿# Lost Eye 0.3.0
+# Lost Eye 0.3.1
 
 A compact Windows 11 x64 video player with the original yellow duck icon.
 
@@ -8,7 +8,7 @@ This is now a native C++ application using Windows Media Foundation and Direct3D
 
 Run **Lost Eye.exe**. It is a self-contained executable: keep or move it wherever you want. Open a video with **Open file**, drop a video onto the window, or pass its path on the command line.
 
-For convenient Windows integration, run **Install Lost Eye.cmd** once. It copies the EXE to `%LOCALAPPDATA%\Programs\Lost Eye\0.3.0`, adds Lost Eye to Start, and registers it in **Open with**. It requires no administrator rights and does not change your default player. Existing different files are not overwritten.
+For convenient Windows integration, run **Install Lost Eye.cmd** once. It copies the EXE to `%LOCALAPPDATA%\Programs\Lost Eye\0.3.1`, adds Lost Eye to Start, and registers it in **Open with**. It requires no administrator rights and does not change your default player. Older version folders are preserved. Existing different files in the same version folder are not overwritten.
 
 Right-click a video > **Open with > Lost Eye**. If you want double-clicking videos to use Lost Eye, choose **Choose another app > Lost Eye > Always** yourself. Use **Just once** to leave defaults unchanged.
 
@@ -22,7 +22,9 @@ Format support depends on the codecs provided by Windows and the hardware/driver
 
 ## Source and build
 
-The active implementation is `native/LostEye.cpp`, with `native/LostEye.rc` and `native/app.manifest`. Build on Windows with the Microsoft C++ Build Tools and Windows SDK:
+If you downloaded source rather than a portable build, it does not contain a ready-to-run EXE. Extract the download, install an eligible Visual Studio Community edition with **Desktop development with C++** (or use another appropriately licensed Microsoft toolchain), then double-click **Build Lost Eye.cmd**. See [BUILDING.md](BUILDING.md) for exact prerequisites, output location and troubleshooting.
+
+The active implementation is `native/LostEye.cpp`, with `native/LostEye.rc` and `native/app.manifest`. The equivalent PowerShell command is:
 
 ```powershell
 .\scripts\Build-Native.ps1
@@ -30,6 +32,10 @@ The active implementation is `native/LostEye.cpp`, with `native/LostEye.rc` and 
 
 Developer tools are needed only to build source. The executable needs none of them.
 
-The original .NET/LibVLC code in `src/LostEye`, its build scripts, earlier ZIPs, and uploaded `Lost_Eye.zip` are retained for rollback. They are legacy builds, not the native 0.3.0 deliverable. The 0.3.0 portable ZIP contains one app EXE, one optional setup launcher, documentation, and the matching native source archive. It contains no VLC or .NET files.
+The native portable ZIP contains one app EXE, an optional per-user setup launcher, documentation, build records, and matching native source archive. Extract it and run the EXE without installing developer tools. It contains no VLC or .NET files. Windows supplies the media components; Microsoft runtime code is linked into the EXE.
 
-The app source remains GPL-2.0-or-later. See LICENSE and licenses/GPL-2.0.txt. The native distribution's notices are in `native/THIRD-PARTY-NOTICES.md`. Original duck asset and generation record are preserved in `assets/`.
+The original .NET/LibVLC code in `src/LostEye` and its scripts remain in the repository for legacy use. Their documentation is in `legacy/`; do not run `Build-Portable.ps1` to build the native player. Existing local older packages are preserved.
+
+## License
+
+Native 0.3.1 is source-available for personal, noncommercial source builds and use under [LICENSE](LICENSE). Commercial rights are reserved to the extent held by the owner; commercial use or redistribution needs separate permission. Third-party terms still apply. Previously supplied GPL copies, including native 0.3.0 and its artwork, retain those permissions. See [LICENSING.md](LICENSING.md) and [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md). Original duck assets and the generation record remain unchanged.
