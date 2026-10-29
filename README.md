@@ -1,55 +1,35 @@
-﻿# Lost Eye
+﻿# Lost Eye 0.3.0
 
-A small Windows 11 x64 video player. Open a video and watch it immediately.
+A compact Windows 11 x64 video player with the original yellow duck icon.
 
-## Run the portable version
+This is now a native C++ application using Windows Media Foundation and Direct3D 11. It uses Windows codecs and the graphics device where supported. It does not use or launch VLC, Windows Media Player, another player app, .NET, or a third-party codec runtime. Only Windows system DLLs are imported; the C++ runtime is linked into the EXE.
 
-Extract the entire `Lost-Eye-0.1.0-win-x64-r2.zip` into a folder, then double-click `Lost Eye.exe`. Keep the dependencies beside it. No .NET, VLC installation, developer tools, administrator access, or account is needed.
+## Run
 
-Open a video with **Open file**, drag one video onto the player, or use Windows **Open with > Choose another app > Choose an app on your PC** and select `Lost Eye.exe`. Choose **Just once** to leave your default player unchanged. If you want double-clicks to open Lost Eye, explicitly choose it as your default in Windows yourself.
+Run **Lost Eye.exe**. It is a self-contained executable: keep or move it wherever you want. Open a video with **Open file**, drop a video onto the window, or pass its path on the command line.
 
-Optionally run `Register Open With.cmd` to add Lost Eye to the current user's Open with choices. This never changes defaults. Keep the folder in place; rerun registration after moving it. `Remove Open With.cmd` removes this folder's optional listing. Neither script needs administrator rights. Ordinary launches write no associations.
+For convenient Windows integration, run **Install Lost Eye.cmd** once. It copies the EXE to `%LOCALAPPDATA%\Programs\Lost Eye\0.3.0`, adds Lost Eye to Start, and registers it in **Open with**. It requires no administrator rights and does not change your default player. Existing different files are not overwritten.
+
+Right-click a video > **Open with > Lost Eye**. If you want double-clicking videos to use Lost Eye, choose **Choose another app > Lost Eye > Always** yourself. Use **Just once** to leave defaults unchanged.
 
 ## Controls
 
-- **Play / Pause / Replay**, seek bar, and elapsed / total time.
-- **Volume** slider and **Mute / Unmute**.
-- **Full screen**, F11, or F; Escape returns to the window.
-- **Loop** repeats the entire video until switched off. It has no A-B markers.
-- Ctrl+O opens a file. M toggles mute; L toggles loop. Left/right seek five seconds when a slider is not focused. Space plays/pauses when focus is in the video area; focused buttons retain normal keyboard behavior.
+Back to start, rewind 10 seconds, play/pause/replay, forward 10 seconds, skip to end, seek, elapsed/total time, volume/mute, fullscreen, and one whole-video Loop checkbox. Ctrl+O opens a file, F11 enters/exits fullscreen, Escape exits fullscreen, M toggles mute, and L toggles loop. Left/right seek 10 seconds, Home returns to the start, and End skips to the end when a slider isn't focused. Double-click the video to toggle fullscreen.
 
-Missing, empty, damaged, and unsupported files show a message inside the player. Open another file to recover. Only one file is opened at a time; there is no playlist, recent-file history, settings page, account, ad, subscription, telemetry, or update service.
+The window appears before the engine initializes. Opening another video reuses the existing window. Missing, empty, damaged or unavailable formats show a message and let you choose another file.
 
-## First test on your laptop
+Format support depends on the codecs provided by Windows and the hardware/driver. Tested locally: MP4/H.264/AAC, MKV/H.264/AAC, and WebM/VP9/Opus. This does not guarantee every codec, HDR, protected file or graphics device. Windows N editions without media components need those Windows components; no player app or third-party codec library is bundled.
 
-1. Open a familiar local MP4. Confirm moving video and audible, synchronized sound.
-2. Pause, drag the seek bar, resume, adjust volume, then mute/unmute.
-3. Enable Loop and let the clip finish twice. Disable Loop and confirm it stops at the next end.
-4. Enter/exit fullscreen and resize the window. Check the video keeps its aspect ratio.
-5. Drop another file onto the video area while playing. Try MKV/WebM if available.
-6. Test Explorer Open with using a path containing spaces. Use Just once to preserve your default.
-7. Try a damaged or unsupported file, then reopen a valid video.
+## Source and build
 
-This first version is unsigned. Windows hardware, drivers, codecs, HDR, protected media, and unusual/damaged files can vary. It does not promise every codec or machine. Large/slow-storage files may need more time. This build targets x64, not native ARM64 or 32-bit Windows.
-
-## Build from source
-
-Developers need the .NET 10 SDK on Windows. End users do not.
+The active implementation is `native/LostEye.cpp`, with `native/LostEye.rc` and `native/app.manifest`. Build on Windows with the Microsoft C++ Build Tools and Windows SDK:
 
 ```powershell
-.\scripts\Build-Portable.ps1
+.\scripts\Build-Native.ps1
 ```
 
-The script restores pinned packages, publishes a self-contained x64 folder, copies licenses and source references, creates a SHA-256 inventory, and writes the portable ZIP. It refuses to overwrite an existing release folder/ZIP. Choose another `-OutputName` for a new build.
+Developer tools are needed only to build source. The executable needs none of them.
 
-`src/LostEye`: Windows Forms UI, file/error handling, LibVLCSharp integration, and optional association registration. `tests/LostEye.SmokeTests`: real decoding and state checks against disposable fixtures. `scripts/Test.ps1` creates test clips using FFmpeg (development only) and runs the checks. The generated duck and actual 7-size ICO are in `assets`; `scripts/Convert-Icon.ps1` reproducibly packages that PNG without replacing the original.
+The original .NET/LibVLC code in `src/LostEye`, its build scripts, earlier ZIPs, and uploaded `Lost_Eye.zip` are retained for rollback. They are legacy builds, not the native 0.3.0 deliverable. The 0.3.0 portable ZIP contains one app EXE, one optional setup launcher, documentation, and the matching native source archive. It contains no VLC or .NET files.
 
-## Engine and redistribution
-
-.NET Windows Forms keeps the native desktop UI straightforward. LibVLC 3.0.24 with LibVLCSharp 3.10.2 provides mature codecs and automatic hardware decoding. Managed/runtime version: .NET 10.0.14. Native libraries remain separate and replaceable.
-
-Lost Eye code is licensed GPL-2.0-or-later because the supplied native plugin set includes GPL components. See `LICENSE`, `THIRD-PARTY-NOTICES.md`, `SOURCES.md`, and `licenses/`. Source for Lost Eye and the two main VideoLAN components accompanies the portable package. Preserve the notices and source access when redistributing. There is no VideoLAN endorsement; the generated yellow duck is original artwork for this project.
-
-See `VERIFICATION.md` for actual checks and remaining manual tests.
-
-The build generates a relocatable VLC plugin cache to avoid a slow first-launch scan. If replacing native VLC components, regenerate `libvlc/win-x64/plugins/plugins.dat` using the included source tool: `dotnet run --project tools/PluginCache -- "<portable folder>/libvlc/win-x64"`. Removing the cache allows runtime discovery again, but the first scan can be slow. The tool is for developers and is not needed to run the portable app.
+The app source remains GPL-2.0-or-later. See LICENSE and licenses/GPL-2.0.txt. The native distribution's notices are in `native/THIRD-PARTY-NOTICES.md`. Original duck asset and generation record are preserved in `assets/`.
