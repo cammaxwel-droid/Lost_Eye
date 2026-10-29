@@ -25,7 +25,7 @@ try {
   dotnet run --project tools\PluginCache\PluginCache.csproj -c Release -- (Join-Path $stage 'libvlc\win-x64')
   if ($LASTEXITCODE -ne 0) { throw 'Native plugin cache generation failed' }
   # This script builds the retained GPL .NET/LibVLC release, not native Lost Eye.
-  Copy-Item legacy\README.md,legacy\THIRD-PARTY-NOTICES.md,legacy\SOURCES.md,legacy\VERIFICATION.md -Destination $stage
+  Copy-Item README.md,THIRD-PARTY-NOTICES.md,SOURCES.md,VERIFICATION.md -Destination $stage
   Copy-Item licenses\LEGACY-GPL-NOTICE.txt -Destination (Join-Path $stage 'LICENSE')
   Copy-Item licenses -Destination $stage -Recurse
   Copy-Item scripts\'Register Open With.cmd',scripts\'Remove Open With.cmd' -Destination $stage
@@ -35,9 +35,9 @@ try {
   $snapshot = Join-Path $root "artifacts\$OutputName-source"
   if (Test-Path -LiteralPath $snapshot) { throw 'Source snapshot already exists.' }
   New-Item -ItemType Directory -Path $snapshot | Out-Null
-  foreach ($folder in @('src','assets','scripts','tests','tools','licenses','legacy')) {
+  foreach ($folder in @('src','assets','scripts','tests','tools','licenses')) {
     Get-ChildItem -LiteralPath (Join-Path $root $folder) -File -Recurse | Where-Object {
-      $_.FullName -notmatch '[\\/](bin|obj)[\\/]' -and $_.Name -notin @('Build-Native.ps1','Package-Native.ps1','Test-Uninstall.ps1')
+      $_.FullName -notmatch '[\\/](bin|obj)[\\/]'
     } | ForEach-Object {
       $relative = $_.FullName.Substring($root.Length + 1)
       $destination = Join-Path $snapshot $relative
@@ -45,7 +45,7 @@ try {
       Copy-Item -LiteralPath $_.FullName -Destination $destination
     }
   }
-  Copy-Item legacy\README.md,legacy\THIRD-PARTY-NOTICES.md,legacy\SOURCES.md,legacy\VERIFICATION.md,.gitignore -Destination $snapshot
+  Copy-Item README.md,THIRD-PARTY-NOTICES.md,SOURCES.md,VERIFICATION.md,.gitignore -Destination $snapshot
   Copy-Item licenses\LEGACY-GPL-NOTICE.txt -Destination (Join-Path $snapshot 'LICENSE')
   Add-Type -AssemblyName System.IO.Compression.FileSystem
   [IO.Compression.ZipFile]::CreateFromDirectory($snapshot, (Join-Path $sources 'Lost-Eye-source.zip'), [IO.Compression.CompressionLevel]::Optimal, $false)

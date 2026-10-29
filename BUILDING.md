@@ -1,6 +1,6 @@
 # Build Lost Eye from source
 
-This builds the native Windows version from the included C++ source and duck icon. It uses Windows Media Foundation and Direct3D 11. It does not download VLC, FFmpeg, codecs, or other libraries. Read [LICENSE](LICENSE) and [LICENSING.md](LICENSING.md) for permission to use this source; personal source builds do not grant commercial redistribution rights.
+This builds the native Windows version from the included C++ source and duck icon. It uses Windows Media Foundation and Direct3D 11. The build uses the installed Microsoft toolchain and Windows SDK without downloading packages or codec libraries. Read [LICENSE](LICENSE) and [LICENSING.md](LICENSING.md) for permission to use this source; personal source builds do not grant commercial redistribution rights.
 
 ## One-time prerequisites
 
@@ -44,7 +44,7 @@ For a deliberately named build, open PowerShell in the extracted source folder a
 .\scripts\Package-Native.ps1 -OutputName 'Lost-Eye-my-build'
 ```
 
-The result is `artifacts\Lost-Eye-my-build.zip`, containing `Lost Eye.exe`, install/uninstall launchers and the uninstall script, documentation, licence and third-party notices, and matching native source in `Lost-Eye-native-source.zip`. `BUILD-INFO.json` records compiler/SDK versions and source/executable hashes; `SHA256SUMS.txt` lists the packaged files, excluding itself. A `.zip.sha256` file beside the ZIP records the archive hash. The ZIP includes neither the old VLC implementation nor Microsoft developer tools. Keep your use within [LICENSE](LICENSE).
+The result is `artifacts\Lost-Eye-my-build.zip`, containing `Lost Eye.exe`, install/uninstall launchers and the uninstall script, documentation, licence and third-party notices, and matching native source in `Lost-Eye-native-source.zip`. `BUILD-INFO.json` records compiler/SDK versions and source/executable hashes; `SHA256SUMS.txt` lists the packaged files, excluding itself. A `.zip.sha256` file beside the ZIP records the archive hash. The package contains only the current native implementation and its listed files. Keep your use within [LICENSE](LICENSE).
 
 Explicit output names never overwrite an existing build or ZIP. Choose a new name for another attempt. Packaging checks that the compiled source, icon, manifest, build script, and executable still match the recorded build. If they changed, rebuild under a new name first. Packaging uses a fresh staging folder rather than collecting unrelated files from a previous build.
 
@@ -56,4 +56,4 @@ Normal builds compile only the player. Add `-WithTests` to compile the test exec
 .\scripts\Build-Native.ps1 -OutputName 'Lost-Eye-check' -WithTests
 ```
 
-Build intermediates and dependency inspection go into `artifacts\Lost-Eye-check-build`; the test executable goes into `artifacts\Lost-Eye-check-tests`. Compiling tests does not run them. Test fixtures and Windows playback verification are separate; see root `VERIFICATION.md` for this maintenance version's verification and `native\VERIFICATION.md` for the historical 0.3.0 checks.
+Build intermediates and dependency inspection go into `artifacts\Lost-Eye-check-build`; the test executable goes into `artifacts\Lost-Eye-check-tests`. Compiling tests does not run them. Test fixtures and Windows playback verification are separate; see root `VERIFICATION.md` for this version's verification. Historical reports remain in the repository's `legacy/` archive.

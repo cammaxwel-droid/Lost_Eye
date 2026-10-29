@@ -8,4 +8,4 @@ BUILD-INFO.json records the toolchain, source/build input hashes and generated E
 
 The source archive contains project source, not source for Windows or Microsoft's compiler/runtime. Those components retain Microsoft's terms. Personal source builds are allowed by LICENSE. See LICENSING.md before commercial use or redistribution.
 
-Earlier .NET/LibVLC sources, component download hashes and rebuild instructions are preserved in legacy/SOURCES.md in the repository, with their original license notices. They are not prerequisites for the native build and are not part of its portable package.
+Earlier implementations, component download hashes, rebuild instructions and original license notices are preserved together in the repository's legacy/ archive. Current source exports exclude it using .gitattributes; the native packaging script includes only its explicit file list. Clone the repository if you need the historical implementation. The current build does not depend on the archive.

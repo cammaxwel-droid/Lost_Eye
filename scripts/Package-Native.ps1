@@ -32,7 +32,7 @@ foreach ($document in $documents) {
     Copy-Item -LiteralPath (Join-Path $root $document) -Destination $portable
 }
 Copy-Item -LiteralPath (Join-Path $root 'Build Lost Eye.cmd') -Destination $source
-foreach ($file in @('LostEye.cpp','LostEye.rc','app.manifest','THIRD-PARTY-NOTICES.md','VERIFICATION.md','Install Lost Eye.cmd','Uninstaller.cmd','Uninstall-LostEye.ps1')) {
+foreach ($file in @('LostEye.cpp','LostEye.rc','app.manifest','THIRD-PARTY-NOTICES.md','Install Lost Eye.cmd','Uninstaller.cmd','Uninstall-LostEye.ps1')) {
     Copy-Item -LiteralPath (Join-Path $root "native\$file") -Destination (Join-Path $source 'native')
 }
 foreach ($file in @('Build-Native.ps1','Package-Native.ps1','Test-Uninstall.ps1')) {

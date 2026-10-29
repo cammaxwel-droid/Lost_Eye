@@ -1,5 +1,9 @@
 ﻿# Lost Eye
 
+This directory preserves the older 0.1.0 implementation, its source, assets, build tools and original dependency notices. It is separate from the current native player described in the repository's root README. The additional `native-0.3.0-*` records preserve historical native verification and notices; they do not describe this 0.1.0 player.
+
+All paths and commands below are relative to this directory (or an extracted legacy source archive). In the repository, open PowerShell in `legacy` first. Builds and tests write into its own `artifacts` directory. The `LICENSE` here and the notices in `licenses/` retain the earlier terms.
+
 A small Windows 11 x64 video player. Open a video and watch it immediately.
 
 ## Run the portable version
