@@ -2,7 +2,25 @@
 
 Checked on 30 October 2026. This candidate changes the existing controls: Back/Skip and Left/Right open adjacent videos in the current folder, Space always controls playback, clicking the video toggles playback, and the mouse wheel changes volume. It preserves the dark interface and explicitly draws the Loop label in light text. This is a review candidate, not a published release.
 
-## Candidate checks completed on Windows
+## R2 installation and launch-routing follow-up
+
+The initial candidate was built and packaged but had not replaced the owner's installed player. A fresh inspection found Open with and App Paths pointing to installed 0.3.0, the main Start shortcut pointing to installed 0.3.2, and a duplicate Start shortcut pointing to a downloaded 0.3.2 copy. Earlier players also shared the candidate's single-instance identifiers, allowing an old running window to receive files launched through the candidate.
+
+R2 scopes the single-instance mutex and window class to 0.3.3 and displays **Lost Eye 0.3.3 candidate** in both the empty and video window titles. It does not close older windows. The requested playback controls remain as implemented in the initial candidate.
+
+Checked on the same Windows laptop:
+
+- The rebuilt production EXE and test executable compiled successfully. The installed EXE matches the R2 build record: SHA256 `bf96ae26d9a5b855785d8b9a8f051172af4523d1a94f764f1a37d3a9313c9e95`.
+- The actual candidate installer returned zero. Start, both Open with commands and App Paths now resolve to the installed 0.3.3 executable.
+- With an old 0.3.0 test window running, the Start shortcut opened a separate candidate window. Windows' enumerated Open with handler then opened the MP4 in that existing candidate process. Its title changed to the requested file; the old window stayed unchanged. The old test window was then closed.
+- In the installed production window, Back/Skip and Left/Right selected neighboring fixture files, the last-file boundary stayed in the current folder, a video click resumed playback, Space paused while Full screen had focus without leaving fullscreen, and the wheel changed volume from 80% to 75% and back. A screenshot confirms light Loop text/check mark and the versioned title. UI input checks used an explicitly focused player window.
+- The first repeated playback run timed out after a damaged-file recovery check. Its cause was not established. A second run of the same unchanged binary passed all 85 checks, with zero failures and 487 presented frames; MP4, MKV and WebM rendered. Both reports are retained, so the timeout is not represented as a passing run.
+- At the owner's request, three old installed versions, an unchanged downloaded 0.3.2 portable folder, nine older build executables, ten verified older portable ZIPs and two obsolete shortcuts were moved to the Recycle Bin (25 targets total). Source, Git history, videos and verification fixtures were preserved. Only 0.3.3 remains in the installation folder. All 12 extension defaults and UserChoice records matched their pre-install snapshots after cleanup.
+- An independent review found no new issue in the version-specific handoff or title changes. The earlier full source-build, folder-navigation and isolated uninstall results below are historical evidence for the initial candidate; they were not rerun solely for this routing/title patch.
+
+R2 local evidence is in `artifacts/candidate-install-routing-verification/`, including `installed-proof.json`, `shell-handler-results.txt`, `routing-player-processes.json`, both `playback-*-results.txt` reports, `installed-candidate.png`, `retirement-plan.json`, `retirement-results.txt` and `post-cleanup-results.txt`. The rebuilt package is `Lost-Eye-0.3.3-candidate-r2-win-x64.zip`. It remains a review candidate; no release was published for this follow-up.
+
+## Original candidate checks completed on Windows
 
 - The x64 player and both test executables compiled with Microsoft C/C++ 19.51.36260.0, VC tools 14.51.36231 and Windows SDK 10.0.28000.0. The production EXE is 433,152 bytes. Its imported DLLs are Windows system components; the Microsoft runtime is statically linked. The build record includes all eight application/build inputs, including the new folder-navigation header.
 - 85 playback/control checks passed with zero failures and 486 presented frames on Intel UHD Graphics 620. MP4/H.264/AAC, MKV/H.264/AAC and WebM/VP9/Opus fixtures rendered. Coverage includes Space key-down, repeat and key-up with all 13 focus targets; unchanged fullscreen/loop state; video clicks; light Loop text; the dark-window attribute; wheel accumulation, limits and mute state; same-folder Back/Skip/Left/Right; first/last boundaries; recovery from a damaged neighbor; seeking, resize and whole-video loop behavior.

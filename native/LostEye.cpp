@@ -32,7 +32,9 @@
 #include "FolderVideos.h"
 using Microsoft::WRL::ComPtr;
 namespace fs = std::filesystem;
-constexpr wchar_t WindowClass[] = L"LostEye.Native.0.3";
+constexpr wchar_t WindowClass[] = L"LostEye.Native.0.3.3";
+constexpr wchar_t SingleInstanceName[] = L"Local\\LostEye.Native.Player.0.3.3";
+constexpr wchar_t PlayerTitle[] = L"Lost Eye 0.3.3 candidate";
 constexpr UINT WM_READY = WM_APP + 1, WM_MEDIA = WM_APP + 2, WM_START = WM_APP + 3;
 enum ControlId { ID_OPEN=100, ID_BACK, ID_REWIND, ID_PLAY, ID_FORWARD, ID_SKIP, ID_LOOP, ID_MUTE, ID_FULL, ID_SEEK, ID_VOLUME };
 static std::wstring ExePath() { wchar_t p[32768]{}; GetModuleFileNameW(nullptr,p,32768); return p; }
@@ -299,7 +301,7 @@ struct App {
         DWORD attributes=GetFileAttributesW(file.c_str());
         if(attributes!=INVALID_FILE_ATTRIBUTES&&(attributes&FILE_ATTRIBUTE_DIRECTORY)){Fail(L"Choose a video file, not a folder.");return;}
         navigationFile=file;
-        SetWindowTextW(name,fs::path(file).filename().c_str());SetWindowTextW(window,(fs::path(file).filename().wstring()+L" - Lost Eye").c_str());
+        SetWindowTextW(name,fs::path(file).filename().c_str());SetWindowTextW(window,(fs::path(file).filename().wstring()+L" - "+PlayerTitle).c_str());
         if(!engine){pending=file;Status(initialized?L"The Windows playback engine is unavailable.":L"Starting video playback...");return;}
         engine->media->Pause();failed=false;loading=true;dragging=false;forceFrame=true;atEnd=false;startFrame=engine->frames;openedAt=GetTickCount64();
         EnableTransport(false);SendMessageW(seek,TBM_SETPOS,TRUE,0);SetWindowTextW(time,L"0:00 / 0:00");
@@ -579,7 +581,8 @@ int WINAPI wWinMain(HINSTANCE instance,HINSTANCE,LPWSTR,int show){
     }
     HANDLE single=nullptr;
 #ifndef LOSTEYE_TEST
-    single=CreateMutexW(nullptr,FALSE,L"Local\\LostEye.Native.Player");
+    // Only hand files to this version. An older installed window must not absorb a candidate launch.
+    single=CreateMutexW(nullptr,FALSE,SingleInstanceName);
     if(single&&GetLastError()==ERROR_ALREADY_EXISTS){
         HWND existing=nullptr;for(int i=0;i<20&&!existing;++i){existing=FindWindowW(WindowClass,nullptr);if(!existing)Sleep(100);}
         if(existing){if(!path.empty()){try{path=fs::absolute(path).wstring();}catch(...){}COPYDATASTRUCT data{1,static_cast<DWORD>((path.size()+1)*sizeof(wchar_t)),path.data()};DWORD_PTR result=0;SendMessageTimeoutW(existing,WM_COPYDATA,0,reinterpret_cast<LPARAM>(&data),SMTO_ABORTIFHUNG,3000,&result);}ShowWindow(existing,IsIconic(existing)?SW_RESTORE:SW_SHOW);SetForegroundWindow(existing);CloseHandle(single);LocalFree(argv);CoUninitialize();return 0;}
@@ -597,7 +600,7 @@ int WINAPI wWinMain(HINSTANCE instance,HINSTANCE,LPWSTR,int show){
         app.pending=path;
 #endif
         UINT dpi=GetDpiForSystem();RECT r{0,0,MulDiv(900,dpi,96),MulDiv(560,dpi,96)};AdjustWindowRectExForDpi(&r,WS_OVERLAPPEDWINDOW,FALSE,0,dpi);
-        HWND window=CreateWindowExW(WS_EX_ACCEPTFILES,WindowClass,L"Lost Eye",WS_OVERLAPPEDWINDOW|WS_CLIPCHILDREN,CW_USEDEFAULT,CW_USEDEFAULT,r.right-r.left,r.bottom-r.top,nullptr,nullptr,instance,&app);
+        HWND window=CreateWindowExW(WS_EX_ACCEPTFILES,WindowClass,PlayerTitle,WS_OVERLAPPEDWINDOW|WS_CLIPCHILDREN,CW_USEDEFAULT,CW_USEDEFAULT,r.right-r.left,r.bottom-r.top,nullptr,nullptr,instance,&app);
         if(!window)throw HRESULT_FROM_WIN32(GetLastError());ShowWindow(window,show);if(!app.pending.empty())app.Open(app.pending);UpdateWindow(window);app.shownAt=GetTickCount64();PostMessageW(window,WM_START,0,0);
         MSG msg{};while(GetMessageW(&msg,nullptr,0,0)>0){
             bool consumed=app.HandleInput(msg);
