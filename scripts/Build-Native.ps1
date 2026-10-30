@@ -1,5 +1,5 @@
 param(
-    [string]$OutputName = 'Lost-Eye-0.3.2-win-x64',
+    [string]$OutputName = 'Lost-Eye-0.3.3-win-x64',
     [switch]$WithTests,
     [switch]$TestsOnly
 )
@@ -48,14 +48,14 @@ if (!$env:WindowsSdkDir -or !$env:WindowsSDKVersion) { throw 'A Windows SDK was 
 New-Item -ItemType Directory -Path $build | Out-Null
 if (!$TestsOnly) { New-Item -ItemType Directory -Path $out | Out-Null }
 if ($WithTests -or $TestsOnly) { New-Item -ItemType Directory -Path $test | Out-Null }
-$inputs = @('native\LostEye.cpp', 'native\LostEye.rc', 'native\app.manifest', 'native\Uninstaller.cmd', 'native\Uninstall-LostEye.ps1', 'assets\lost-eye.ico', 'scripts\Build-Native.ps1')
+$inputs = @('native\LostEye.cpp', 'native\FolderVideos.h', 'native\LostEye.rc', 'native\app.manifest', 'native\Uninstaller.cmd', 'native\Uninstall-LostEye.ps1', 'assets\lost-eye.ico', 'scripts\Build-Native.ps1')
 $inputHashes = @($inputs | ForEach-Object { [pscustomobject]@{ Path = $_; SHA256 = (Get-FileHash -LiteralPath (Join-Path $root $_) -Algorithm SHA256).Hash } })
 Push-Location (Join-Path $root 'native')
 try {
     $resource = Join-Path $build 'LostEye.res'
     & rc.exe /nologo /fo $resource LostEye.rc
     if ($LASTEXITCODE -ne 0) { throw 'Resource compilation failed.' }
-    $libs = @('user32.lib','gdi32.lib','comctl32.lib','ole32.lib','oleaut32.lib','shell32.lib','shlwapi.lib','advapi32.lib','mfplat.lib','mfuuid.lib','d3d11.lib','dxgi.lib','propsys.lib')
+    $libs = @('user32.lib','gdi32.lib','comctl32.lib','ole32.lib','oleaut32.lib','shell32.lib','shlwapi.lib','advapi32.lib','mfplat.lib','mfuuid.lib','d3d11.lib','dxgi.lib','propsys.lib','dwmapi.lib')
     $flags = @('/nologo','/std:c++20','/EHsc','/O2','/MT','/W4','/utf-8','/D_WIN32_WINNT=0x0A00','/DWINVER=0x0A00','LostEye.cpp',$resource)
     if (!$TestsOnly) {
         $exe = Join-Path $out 'Lost Eye.exe'
@@ -86,6 +86,10 @@ try {
         & cl.exe @flags /DLOSTEYE_TEST "/Fo$(Join-Path $build 'Tests.obj')" "/Fe$testExe" /link /SUBSYSTEM:WINDOWS /MANIFEST:EMBED /MANIFESTINPUT:app.manifest @libs
         if ($LASTEXITCODE -ne 0) { throw 'Native test compilation failed.' }
         Write-Host "Test executable: $testExe"
+        $folderTest = Join-Path $test 'FolderVideos.Tests.exe'
+        & cl.exe /nologo /std:c++20 /EHsc /O2 /MT /W4 /utf-8 FolderVideos.Tests.cpp "/Fo$(Join-Path $build 'FolderVideos.Tests.obj')" "/Fe$folderTest" /link shlwapi.lib
+        if ($LASTEXITCODE -ne 0) { throw 'Folder navigation test compilation failed.' }
+        Write-Host "Folder test executable: $folderTest"
     }
     Write-Host "Build name: $OutputName"
 } finally { Pop-Location }

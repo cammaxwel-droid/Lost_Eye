@@ -1,4 +1,25 @@
-# Native Lost Eye 0.3.2 verification
+# Native Lost Eye 0.3.3 candidate verification
+
+Checked on 30 October 2026. This candidate changes the existing controls: Back/Skip and Left/Right open adjacent videos in the current folder, Space always controls playback, clicking the video toggles playback, and the mouse wheel changes volume. It preserves the dark interface and explicitly draws the Loop label in light text. This is a review candidate, not a published release.
+
+## Candidate checks completed on Windows
+
+- The x64 player and both test executables compiled with Microsoft C/C++ 19.51.36260.0, VC tools 14.51.36231 and Windows SDK 10.0.28000.0. The production EXE is 433,152 bytes. Its imported DLLs are Windows system components; the Microsoft runtime is statically linked. The build record includes all eight application/build inputs, including the new folder-navigation header.
+- 85 playback/control checks passed with zero failures and 486 presented frames on Intel UHD Graphics 620. MP4/H.264/AAC, MKV/H.264/AAC and WebM/VP9/Opus fixtures rendered. Coverage includes Space key-down, repeat and key-up with all 13 focus targets; unchanged fullscreen/loop state; video clicks; light Loop text; the dark-window attribute; wheel accumulation, limits and mute state; same-folder Back/Skip/Left/Right; first/last boundaries; recovery from a damaged neighbor; seeking, resize and whole-video loop behavior.
+- 18 isolated folder-navigation checks passed with zero failures: natural filename order, case and Unicode, missing files/directories, first/last boundaries, and exclusion of subfolders, parent folders and sibling folders. Four symbolic-link checks were skipped because Windows did not allow test-link creation. The code rejects reparse points, but these four runtime scenarios remain unverified on this account.
+- 40 uninstall checks passed against the actual 0.3.3 EXE, with exit code zero and empty stderr, using isolated temporary files and dedicated test registry keys. No real installation or default-player registration was changed in this candidate pass.
+- The production candidate was launched with a video path and inspected through Windows UI automation. Actual video clicks resumed playback, Space played/paused with Full screen focused without leaving fullscreen, wheel-up changed 80% to 85%, and Right/Left selected clip 10/clip 2. A saved screenshot shows the dark controls, light Loop lettering, visible checked state and paused frame. No light-mode option exists.
+- An independent source review found no actionable issues in the changed controls, folder navigation or candidate version/build wiring.
+- A fresh 23-file source staging folder containing spaces built successfully through the actual `Build Lost Eye.cmd`, with exit code zero and empty stderr. All eight build-input hashes matched the candidate record; the resulting EXE reported 0.3.3 and matched its own record. The three helper scripts and both embedded uninstall resources matched source. This rebuilt EXE was not separately launched or installed. Results are in `artifacts/Source Build Check 0.3.3 49d4a140dcea4035b141a01ceaf3be5b/verification-results.txt`.
+- All eight candidate build inputs and the production EXE matched the original build record. PowerShell parsing, manifest XML parsing and `git diff --check` passed.
+
+Local evidence is retained in `artifacts/candidate-controls-native-tests.txt`, `artifacts/candidate-folder-tests.txt`, `artifacts/candidate-controls-preview.png`, `artifacts/Candidate Uninstall Check 0.3.3 5f02c16e549843019ae03e152ca8b51f/`, and `artifacts/Lost-Eye-0.3.3-candidate-win-x64-build/`. These generated artifacts are not source files and are not committed.
+
+GPU-device creation and rendered pixels were verified; this does not prove hardware decoding for every format. Audible A/V quality and personal video collections still need owner acceptance. Other machines, codecs, Windows N, HDR/protected content, and unsigned-download prompts are not certified. The real installed-version/default-player round trip recorded below belongs to 0.3.2 and was not repeated against the user's installed player for this candidate.
+
+---
+
+# Historical native Lost Eye 0.3.2 verification
 
 Release verification completed on 30 October 2026. This revision adds the per-user uninstaller and embeds its scripts in the installer. The installation folder is now 0.3.2; older folders are preserved. Playback logic is unchanged from 0.3.1.
 

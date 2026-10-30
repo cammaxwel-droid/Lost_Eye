@@ -2,6 +2,8 @@
 
 This builds the native Windows version from the included C++ source and duck icon. It uses Windows Media Foundation and Direct3D 11. The build uses the installed Microsoft toolchain and Windows SDK without downloading packages or codec libraries. Read [LICENSE](LICENSE) and [LICENSING.md](LICENSING.md) for permission to use this source; personal source builds do not grant commercial redistribution rights.
 
+The current branch is the 0.3.3 review candidate. It does not replace the published 0.3.2 download.
+
 ## One-time prerequisites
 
 Use Windows 11 x64 and an appropriately licensed Microsoft C++ toolchain:
@@ -18,7 +20,7 @@ Microsoft's tools and Windows SDK have their own licence terms. Standalone Build
 2. Double-click **Build Lost Eye.cmd**. Give the compiler time to finish; the window stays open and reports any error.
 3. When it says **Built**, open the reported `Lost Eye.exe`. The first build normally creates:
 
-   `artifacts\Lost-Eye-0.3.2-win-x64\Lost Eye.exe`
+   `artifacts\Lost-Eye-0.3.3-win-x64\Lost Eye.exe`
 
    Repeating a build adds a date and unique suffix to the folder name to preserve your earlier build. Close any running Lost Eye before trying another build.
 4. Choose **Open file**, drag a video onto the window, or pass a video path to the executable. Use a video already known to play on that Windows installation. Supported formats depend on Windows components and codecs installed on the computer.
@@ -27,11 +29,11 @@ The executable is portable and needs no developer tools to run. It is currently 
 
 ## Optional installation and Open with
 
-Double-click **Install Lost Eye.cmd** beside the newly built executable. It runs that executable's built-in `--install` command, copies it and its embedded uninstall scripts to `%LOCALAPPDATA%\Programs\Lost Eye\0.3.2`, and adds Start and **Open with** entries for your Windows account. It does not change your default video player and does not need administrator access.
+Double-click **Install Lost Eye.cmd** beside the newly built executable. It runs that executable's built-in `--install` command, copies it and its embedded uninstall scripts to `%LOCALAPPDATA%\Programs\Lost Eye\0.3.3`, and adds Start and **Open with** entries for your Windows account. It does not change your default video player and does not need administrator access.
 
 Then right-click a video, choose **Open with > Choose another app**, and select Lost Eye. The installer preserves a different existing executable in the same version's installation folder and reports that conflict instead of overwriting it. You can still run the newly built executable directly from its output folder. A rebuild with changed source is not automatically a new application version.
 
-To uninstall 0.3.2, close the player and run **Uninstaller.cmd** from the installed folder or extracted portable package, keeping **Uninstall-LostEye.ps1** beside it. It removes only the installed version and entries still owned by it. Videos, default-player choices, downloads, source, older versions and unknown files are preserved. If Lost Eye was your chosen default, select a replacement in Windows afterward.
+To uninstall 0.3.3, close the player and run **Uninstaller.cmd** from the installed folder or extracted portable package, keeping **Uninstall-LostEye.ps1** beside it. It removes only the installed version and entries still owned by it. Videos, default-player choices, downloads, source, older versions and unknown files are preserved. If Lost Eye was your chosen default, select a replacement in Windows afterward.
 
 The uninstaller uses Windows PowerShell already supplied by Windows. Its launcher requests RemoteSigned for that process only; it does not change the saved execution policy or override Group Policy. For trusted downloaded files, unblock the ZIP before extracting if required by that policy.
 
@@ -50,10 +52,14 @@ Explicit output names never overwrite an existing build or ZIP. Choose a new nam
 
 ## Developer verification
 
-Normal builds compile only the player. Add `-WithTests` to compile the test executable as well, or use `-TestsOnly` for tests alone:
+Normal builds compile only the player. Add `-WithTests` to compile the playback and folder-navigation test executables as well, or use `-TestsOnly` for tests alone:
 
 ```powershell
 .\scripts\Build-Native.ps1 -OutputName 'Lost-Eye-check' -WithTests
 ```
 
-Build intermediates and dependency inspection go into `artifacts\Lost-Eye-check-build`; the test executable goes into `artifacts\Lost-Eye-check-tests`. Compiling tests does not run them. Test fixtures and Windows playback verification are separate; see root `VERIFICATION.md` for this version's verification. Historical reports remain in the repository's `legacy/` archive.
+Build intermediates and dependency inspection go into `artifacts\Lost-Eye-check-build`; the test executables go into `artifacts\Lost-Eye-check-tests`. Compiling tests does not run them. Run `FolderVideos.Tests.exe` directly for isolated filename-order and folder-boundary checks. It retains its temporary fixture directory and explicitly reports any link checks Windows does not permit.
+
+`LostEye.Tests.exe` takes an absolute fixture-folder path followed by a report-file path. It needs valid `sample video.mp4`, `sample.mkv` and `sample.webm`, an empty `empty.mp4`, and an invalid `damaged.mp4`. The MP4 fixture should contain video and audio and last at least eight seconds. Copy it to `navigation\clip 1.mp4`, `navigation\clip 2.mp4`, `navigation\clip 10.mp4`, `navigation\nested\clip 11.mp4`, `sibling\clip 11.mp4` and `recovery\clip 2.mp4`; copy the damaged fixture to `recovery\clip 1.mp4`. Add a non-video `navigation\clip 3.txt`. The suite opens a real Windows playback window and returns nonzero on failure.
+
+See root `VERIFICATION.md` for this version's results and limitations. Historical reports remain below the candidate results and in the repository's `legacy/` archive.
