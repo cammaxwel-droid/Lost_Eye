@@ -2,7 +2,7 @@
 
 A compact Windows 11 x64 video player with the original yellow duck icon.
 
-This is a review candidate. The published 0.3.2 release remains unchanged. Extract `Lost-Eye-0.3.3-candidate-win-x64.zip` and run **Lost Eye.exe** to try it without installing it.
+This is a review candidate. The published 0.3.2 release remains unchanged. Extract `Lost-Eye-0.3.3-candidate-r2-win-x64.zip` and run **Lost Eye.exe** to try it without installing it. The window title says **Lost Eye 0.3.3 candidate**, so you can identify the build you are testing.
 
 Lost Eye uses the computer's graphics device through Direct3D 11, with Windows Media Foundation providing video decoding and audio. It requests hardware acceleration and shares the graphics device with the media engine. Windows may decode unsupported formats in software; if a hardware graphics device cannot be created, the app can use software rendering. No separate player installation is required.
 
@@ -34,7 +34,9 @@ Scroll the mouse wheel up/down anywhere over the player to raise/lower volume by
 
 The player stays dark, with light text for **Loop** and the other controls. There is no light-mode option.
 
-The window appears before the engine initializes. Opening another video reuses the existing window. Missing, empty, damaged or unavailable formats show a message and let you choose another file.
+The window appears before the engine initializes. Opening another video reuses the existing window for this version. An older running version cannot receive files launched through this candidate. Missing, empty, damaged or unavailable formats show a message and let you choose another file.
+
+For Start and **Open with** to launch this candidate, run its **Install Lost Eye.cmd**. Extracting a ZIP or merging source changes on GitHub does not update an installed copy. Check for **0.3.3 candidate** in the window title after opening a video through Windows.
 
 Format support depends on the codecs provided by Windows and the hardware/driver. Playback evidence and its limits are recorded in [VERIFICATION.md](VERIFICATION.md). This does not guarantee every codec, HDR, protected file or graphics device. Windows N editions without media components need those Windows components; no player app or third-party codec library is bundled.
 
