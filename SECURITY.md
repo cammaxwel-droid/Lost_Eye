@@ -2,7 +2,7 @@
 
 ## Supported version
 
-Security fixes target the latest native release, currently 0.3.3. Older releases and historical implementations are retained for provenance and are not maintained. Download builds only from this repository's GitHub Releases and compare the supplied SHA-256 checksums.
+Security fixes target the latest native release, currently 0.3.4. Older releases and historical implementations are retained for provenance and are not maintained. Download builds only from this repository's GitHub Releases and compare the supplied SHA-256 checksums.
 
 ## Report a vulnerability privately
 

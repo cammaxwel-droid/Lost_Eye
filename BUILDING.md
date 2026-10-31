@@ -2,7 +2,7 @@
 
 This builds the native Windows version from the included C++ source and duck icon. It uses Windows Media Foundation and Direct3D 11. The build uses the installed Microsoft toolchain and Windows SDK without downloading packages or codec libraries. Read [LICENSE](LICENSE) and [LICENSING.md](LICENSING.md) for permission to use this source; personal source builds do not grant commercial redistribution rights.
 
-This source builds Lost Eye 0.3.3. Download the portable Windows x64 ZIP from the GitHub release if you only want to run the player.
+This source builds Lost Eye 0.3.4. Download the portable Windows x64 ZIP from the GitHub release if you only want to run the player.
 
 ## One-time prerequisites
 
@@ -20,7 +20,7 @@ Microsoft's tools and Windows SDK have their own licence terms. Standalone Build
 2. Double-click **Build Lost Eye.cmd**. Give the compiler time to finish; the window stays open and reports any error.
 3. When it says **Built**, open the reported `Lost Eye.exe`. The first build normally creates:
 
-   `artifacts\Lost-Eye-0.3.3-win-x64\Lost Eye.exe`
+   `artifacts\Lost-Eye-0.3.4-win-x64\Lost Eye.exe`
 
    Repeating a build adds a date and unique suffix to the folder name to preserve your earlier build. Close any running Lost Eye before trying another build.
 4. Choose **Open file**, drag a video onto the window, or pass a video path to the executable. Use a video already known to play on that Windows installation. Supported formats depend on Windows components and codecs installed on the computer.
@@ -29,11 +29,11 @@ The executable is portable and needs no developer tools to run. It is currently 
 
 ## Optional installation and Open with
 
-Double-click **Install Lost Eye.cmd** beside the newly built executable. It runs that executable's built-in `--install` command, copies it and its embedded uninstall scripts to `%LOCALAPPDATA%\Programs\Lost Eye\0.3.3`, and adds **Open with** entries for your Windows account. It creates a Start shortcut only if one is missing; an existing shortcut and any earlier backup are preserved unchanged. It does not change your default video player and does not need administrator access.
+Double-click **Install Lost Eye.cmd** beside the newly built executable. It runs that executable's built-in `--install` command, copies it and its embedded uninstall scripts to `%LOCALAPPDATA%\Programs\Lost Eye\0.3.4`, and adds **Open with** entries for your Windows account. It creates a Start shortcut only if one is missing; an existing shortcut and any earlier backup are preserved unchanged. It does not change your default video player and does not need administrator access.
 
 Then right-click a video, choose **Open with > Choose another app**, and select Lost Eye. The installer preserves a different existing executable in the same version's installation folder and reports that conflict instead of overwriting it. You can still run the newly built executable directly from its output folder. A rebuild with changed source is not automatically a new application version.
 
-To uninstall 0.3.3, close the player and run **Uninstaller.cmd** from the installed folder or extracted portable package, keeping **Uninstall-LostEye.ps1** beside it. It removes only the installed version and entries still owned by it. Videos, default-player choices, downloads, source, older versions and unknown files are preserved. If Lost Eye was your chosen default, select a replacement in Windows afterward.
+To uninstall 0.3.4, close the player and run **Uninstaller.cmd** from the installed folder or extracted portable package, keeping **Uninstall-LostEye.ps1** beside it. It removes only the installed version and entries still owned by it. Videos, default-player choices, downloads, source, older versions and unknown files are preserved. If Lost Eye was your chosen default, select a replacement in Windows afterward.
 
 The uninstaller uses Windows PowerShell already supplied by Windows. Its launcher requests RemoteSigned for that process only; it does not change the saved execution policy or override Group Policy. For trusted downloaded files, unblock the ZIP before extracting if required by that policy.
 

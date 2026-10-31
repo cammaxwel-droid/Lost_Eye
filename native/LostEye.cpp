@@ -32,9 +32,9 @@
 #include "FolderVideos.h"
 using Microsoft::WRL::ComPtr;
 namespace fs = std::filesystem;
-constexpr wchar_t WindowClass[] = L"LostEye.Native.0.3.3.release";
-constexpr wchar_t SingleInstanceName[] = L"Local\\LostEye.Native.Player.0.3.3.release";
-constexpr wchar_t PlayerTitle[] = L"Lost Eye 0.3.3";
+constexpr wchar_t WindowClass[] = L"LostEye.Native.0.3.4.release";
+constexpr wchar_t SingleInstanceName[] = L"Local\\LostEye.Native.Player.0.3.4.release";
+constexpr wchar_t PlayerTitle[] = L"Lost Eye 0.3.4";
 constexpr UINT WM_READY = WM_APP + 1, WM_MEDIA = WM_APP + 2, WM_START = WM_APP + 3;
 enum ControlId { ID_OPEN=100, ID_BACK, ID_REWIND, ID_PLAY, ID_FORWARD, ID_SKIP, ID_LOOP, ID_MUTE, ID_FULL, ID_SEEK, ID_VOLUME };
 static std::wstring ExePath() { wchar_t p[32768]{}; GetModuleFileNameW(nullptr,p,32768); return p; }
@@ -196,7 +196,7 @@ static bool CreateStartShortcutIfMissing(const fs::path& shortcut,const fs::path
     return true;
 }
 static fs::path InstallCurrentUser(bool& keptShortcut) {
-    auto directory=KnownFolder(FOLDERID_LocalAppData)/L"Programs"/L"Lost Eye"/L"0.3.3";
+    auto directory=KnownFolder(FOLDERID_LocalAppData)/L"Programs"/L"Lost Eye"/L"0.3.4";
     for(auto current=directory;!current.empty();){
         auto attributes=GetFileAttributesW(current.c_str());
         if(attributes!=INVALID_FILE_ATTRIBUTES&&(attributes&FILE_ATTRIBUTE_REPARSE_POINT))throw HRESULT_FROM_WIN32(ERROR_CANT_ACCESS_FILE);

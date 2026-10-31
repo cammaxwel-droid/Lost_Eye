@@ -1,4 +1,4 @@
-param([string]$OutputName = 'Lost-Eye-0.3.3-win-x64')
+param([string]$OutputName = 'Lost-Eye-0.3.4-win-x64')
 $ErrorActionPreference = 'Stop'
 Import-Module (Join-Path $PSHOME 'Modules\Microsoft.PowerShell.Utility\Microsoft.PowerShell.Utility.psd1') -ErrorAction Stop
 Import-Module (Join-Path $PSHOME 'Modules\Microsoft.PowerShell.Archive\Microsoft.PowerShell.Archive.psd1') -ErrorAction Stop
