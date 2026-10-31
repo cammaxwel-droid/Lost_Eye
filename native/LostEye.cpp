@@ -32,9 +32,9 @@
 #include "FolderVideos.h"
 using Microsoft::WRL::ComPtr;
 namespace fs = std::filesystem;
-constexpr wchar_t WindowClass[] = L"LostEye.Native.0.3.3";
-constexpr wchar_t SingleInstanceName[] = L"Local\\LostEye.Native.Player.0.3.3";
-constexpr wchar_t PlayerTitle[] = L"Lost Eye 0.3.3 candidate";
+constexpr wchar_t WindowClass[] = L"LostEye.Native.0.3.3.release";
+constexpr wchar_t SingleInstanceName[] = L"Local\\LostEye.Native.Player.0.3.3.release";
+constexpr wchar_t PlayerTitle[] = L"Lost Eye 0.3.3";
 constexpr UINT WM_READY = WM_APP + 1, WM_MEDIA = WM_APP + 2, WM_START = WM_APP + 3;
 enum ControlId { ID_OPEN=100, ID_BACK, ID_REWIND, ID_PLAY, ID_FORWARD, ID_SKIP, ID_LOOP, ID_MUTE, ID_FULL, ID_SEEK, ID_VOLUME };
 static std::wstring ExePath() { wchar_t p[32768]{}; GetModuleFileNameW(nullptr,p,32768); return p; }
@@ -605,7 +605,7 @@ int WINAPI wWinMain(HINSTANCE instance,HINSTANCE,LPWSTR,int show){
     }
     HANDLE single=nullptr;
 #ifndef LOSTEYE_TEST
-    // Only hand files to this version. An older installed window must not absorb a candidate launch.
+    // Only hand files to this version. An older or candidate window must not absorb a release launch.
     single=CreateMutexW(nullptr,FALSE,SingleInstanceName);
     if(single&&GetLastError()==ERROR_ALREADY_EXISTS){
         HWND existing=nullptr;for(int i=0;i<20&&!existing;++i){existing=FindWindowW(WindowClass,nullptr);if(!existing)Sleep(100);}
