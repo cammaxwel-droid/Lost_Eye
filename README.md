@@ -2,7 +2,7 @@
 
 A compact Windows 11 x64 video player with the original yellow duck icon.
 
-This is a review candidate. The published 0.3.2 release remains unchanged. Extract `Lost-Eye-0.3.3-candidate-r2-win-x64.zip` and run **Lost Eye.exe** to try it without installing it. The window title says **Lost Eye 0.3.3 candidate**, so you can identify the build you are testing.
+This is a review candidate. The published 0.3.2 release remains unchanged. Extract `Lost-Eye-0.3.3-CANDIDATE-REVIEW-win-x64.zip` and run **Lost Eye.exe** to try it without installing it. The window title says **Lost Eye 0.3.3 candidate**, so you can identify the build you are testing.
 
 Lost Eye uses the computer's graphics device through Direct3D 11, with Windows Media Foundation providing video decoding and audio. It requests hardware acceleration and shares the graphics device with the media engine. Windows may decode unsupported formats in software; if a hardware graphics device cannot be created, the app can use software rendering. No separate player installation is required.
 

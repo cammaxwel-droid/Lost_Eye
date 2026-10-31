@@ -1,3 +1,24 @@
+# R3 portable candidate review - 1 November 2026
+
+This is a local review package, not a published release. It was rebuilt from main snapshot b2f2b89ec295a643f8efbc4a900084756ccf7888 plus the focused startup/test changes included in its matching source ZIP. It has not been installed and no merge or release was performed for this package.
+
+A deterministic regression reproduced a startup race in the previous code: rendering the first frame before the queued CANPLAY event cleared the loading flag, preventing automatic playback. The candidate now keeps the pending start separate from frame rendering. Later CANPLAY events preserve a user's pause.
+
+Fresh Windows checks for this build:
+
+- 89 native playback/control checks passed, exit 0, zero failures, with 481 presented frames on Intel UHD Graphics 620. MP4, MKV and WebM fixtures rendered. The suite covers the startup ordering regression, later-CANPLAY pause preservation, same-folder Back/Skip/Left/Right boundaries, Space with every control focused, video clicks, wheel volume, light Loop text, dark-window mode, seek, fullscreen, loop and damaged-file recovery.
+- The input harness now explicitly restores its window before pointer tests and checks usable bounds after fullscreen. This run deliberately started from a minimized launcher and all input checks passed. Earlier runs had seven pointer-related failures; a diagnostic run with normal geometry passed them. The earlier failures and the startup regression's failing baseline are retained with the package's review-checks reports.
+- 18 folder navigation checks passed. Four symbolic-link cases remain skipped because Windows did not permit creation of the test links.
+- 40 isolated uninstaller checks passed against this build. These use dedicated temporary folders and registry keys; they do not uninstall the user's player or change their default associations.
+- The player and test executables compiled without warnings using MSVC 19.51.36260.0 and Windows SDK 10.0.28000.0. Imported DLLs are Windows components only. The executable SHA-256 is c10f817bf850c5c5dd2b3663310bca01ba7829acddb372cf1ad87faf8b4d4ce4.
+- An independent review found no blocking issue in the startup fix. The original regression failed on the old logic and passed with this fix. Matching source and executable hashes are recorded in BUILD-INFO.json; the packaged file hashes are in SHA256SUMS.txt.
+
+To review, extract Lost-Eye-0.3.3-CANDIDATE-REVIEW-win-x64.zip and run Lost Eye.exe. The window title is Lost Eye 0.3.3 candidate. No developer tools or separate player are needed to run it. Install Lost Eye.cmd is optional and was not run during this packaging task.
+
+This does not certify every codec, GPU, driver, Windows edition, HDR/protected video or audible A/V quality. Review your own videos on the laptop before approving a release. The installed Start/Open with round trip was not repeated for R3; the installation reports below are historical.
+
+---
+
 # Native Lost Eye 0.3.3 candidate verification
 
 Checked on 30 October 2026. This candidate changes the existing controls: Back/Skip and Left/Right open adjacent videos in the current folder, Space always controls playback, clicking the video toggles playback, and the mouse wheel changes volume. It preserves the dark interface and explicitly draws the Loop label in light text. This is a review candidate, not a published release.
