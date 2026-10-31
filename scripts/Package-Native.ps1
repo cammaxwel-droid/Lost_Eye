@@ -26,7 +26,7 @@ $stage = Join-Path $root ('artifacts\native-package-' + [Guid]::NewGuid().ToStri
 $source = Join-Path $stage 'source'
 $portable = Join-Path $stage 'portable'
 New-Item -ItemType Directory -Path $source,$portable,(Join-Path $source 'native'),(Join-Path $source 'scripts'),(Join-Path $source 'assets') | Out-Null
-$documents = @('LICENSE','README.md','BUILDING.md','LICENSING.md','SOURCES.md','THIRD-PARTY-NOTICES.md','VERIFICATION.md')
+$documents = @('LICENSE','README.md','BUILDING.md','LICENSING.md','SOURCES.md','THIRD-PARTY-NOTICES.md','VERIFICATION.md','SECURITY.md')
 foreach ($document in $documents) {
     Copy-Item -LiteralPath (Join-Path $root $document) -Destination $source
     Copy-Item -LiteralPath (Join-Path $root $document) -Destination $portable

@@ -2,7 +2,7 @@
 
 This builds the native Windows version from the included C++ source and duck icon. It uses Windows Media Foundation and Direct3D 11. The build uses the installed Microsoft toolchain and Windows SDK without downloading packages or codec libraries. Read [LICENSE](LICENSE) and [LICENSING.md](LICENSING.md) for permission to use this source; personal source builds do not grant commercial redistribution rights.
 
-The current branch is the 0.3.3 review candidate. It does not replace the published 0.3.2 download.
+This source builds Lost Eye 0.3.3. Download the portable Windows x64 ZIP from the GitHub release if you only want to run the player.
 
 ## One-time prerequisites
 
@@ -62,4 +62,4 @@ Build intermediates and dependency inspection go into `artifacts\Lost-Eye-check-
 
 `LostEye.Tests.exe` takes an absolute fixture-folder path followed by a report-file path. It needs valid `sample video.mp4`, `sample.mkv` and `sample.webm`, an empty `empty.mp4`, and an invalid `damaged.mp4`. The MP4 fixture should contain video and audio and last at least eight seconds. Copy it to `navigation\clip 1.mp4`, `navigation\clip 2.mp4`, `navigation\clip 10.mp4`, `navigation\nested\clip 11.mp4`, `sibling\clip 11.mp4` and `recovery\clip 2.mp4`; copy the damaged fixture to `recovery\clip 1.mp4`. Add a non-video `navigation\clip 3.txt`. The suite opens a real Windows playback window and returns nonzero on failure.
 
-See root `VERIFICATION.md` for this version's results and limitations. Historical reports remain below the candidate results and in the repository's `legacy/` archive.
+See root [VERIFICATION.md](VERIFICATION.md) for current results and limitations. Earlier results remain in the [historical verification report](https://github.com/cammaxwel-droid/Lost_Eye/blob/1701f1e701325eddfdd307e0e32abe8978a554a2/VERIFICATION.md).

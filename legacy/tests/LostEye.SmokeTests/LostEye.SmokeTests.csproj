@@ -1,8 +1,0 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <OutputType>Exe</OutputType><TargetFramework>net10.0-windows</TargetFramework><UseWindowsForms>true</UseWindowsForms>
-    <Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings><RuntimeIdentifier>win-x64</RuntimeIdentifier><PlatformTarget>x64</PlatformTarget><SelfContained>true</SelfContained>
-    <AssemblyName>LostEye.SmokeTests</AssemblyName>
-  </PropertyGroup>
-  <ItemGroup><ProjectReference Include="../../src/LostEye/LostEye.csproj" /></ItemGroup>
-</Project>

@@ -12,7 +12,7 @@ the copyright owner's portions of binaries built from those materials.
 
 It does not replace licenses for Microsoft software or any other third-party
 material. It does not apply to the retained code, scripts, assets, notices or
-third-party license texts in legacy/.
+third-party license texts in historical legacy/ snapshots retained in Git history.
 Those materials retain their existing terms. See LICENSING.md.
 
 2. Personal permission

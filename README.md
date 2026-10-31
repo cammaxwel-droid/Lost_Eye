@@ -1,8 +1,8 @@
-# Lost Eye 0.3.3 candidate
+# Lost Eye 0.3.3
 
 A compact Windows 11 x64 video player with the original yellow duck icon.
 
-This is a review candidate. The published 0.3.2 release remains unchanged. Extract `Lost-Eye-0.3.3-candidate-r2-win-x64.zip` and run **Lost Eye.exe** to try it without installing it. The window title says **Lost Eye 0.3.3 candidate**, so you can identify the build you are testing.
+Download [Lost-Eye-0.3.3-win-x64.zip](https://github.com/cammaxwel-droid/Lost_Eye/releases/download/v0.3.3/Lost-Eye-0.3.3-win-x64.zip), extract it, and run **Lost Eye.exe**. No installation or developer tools are required to play videos. The window title says **Lost Eye 0.3.3**. Matching source and SHA-256 checksums are available on the [release page](https://github.com/cammaxwel-droid/Lost_Eye/releases/tag/v0.3.3).
 
 Lost Eye uses the computer's graphics device through Direct3D 11, with Windows Media Foundation providing video decoding and audio. It requests hardware acceleration and shares the graphics device with the media engine. Windows may decode unsupported formats in software; if a hardware graphics device cannot be created, the app can use software rendering. No separate player installation is required.
 
@@ -10,7 +10,7 @@ Lost Eye uses the computer's graphics device through Direct3D 11, with Windows M
 
 Run **Lost Eye.exe**. It is a self-contained executable: keep or move it wherever you want. Open a video with **Open file**, drop a video onto the window, or pass its path on the command line.
 
-For convenient Windows integration, run **Install Lost Eye.cmd** once. It copies the EXE and uninstall scripts to `%LOCALAPPDATA%\Programs\Lost Eye\0.3.3`, adds Lost Eye to Start, and registers it in **Open with**. It requires no administrator rights and does not change your default player. Older version folders are preserved. Existing different files in the same version folder are not overwritten.
+For convenient Windows integration, run **Install Lost Eye.cmd** once. It copies the EXE and uninstall scripts to `%LOCALAPPDATA%\Programs\Lost Eye\0.3.3`, adds Lost Eye to Start, and registers it in **Open with**. It requires no administrator rights and does not change your default player. Older version folders are preserved. Existing different files in the same version folder are not overwritten. If you installed a 0.3.3 review candidate, close it and run its **Uninstaller.cmd** before installing this final 0.3.3 build. Your videos are preserved.
 
 Right-click a video > **Open with > Lost Eye**. If you want double-clicking videos to use Lost Eye, choose **Choose another app > Lost Eye > Always** yourself. Use **Just once** to leave defaults unchanged.
 
@@ -34,9 +34,9 @@ Scroll the mouse wheel up/down anywhere over the player to raise/lower volume by
 
 The player stays dark, with light text for **Loop** and the other controls. There is no light-mode option.
 
-The window appears before the engine initializes. Opening another video reuses the existing window for this version. An older running version cannot receive files launched through this candidate. Missing, empty, damaged or unavailable formats show a message and let you choose another file.
+The window appears before the engine initializes. Opening another video reuses the existing window for this version. An older running version cannot receive files launched through this release. Missing, empty, damaged or unavailable formats show a message and let you choose another file.
 
-For Start and **Open with** to launch this candidate, run its **Install Lost Eye.cmd**. Extracting a ZIP or merging source changes on GitHub does not update an installed copy. Check for **0.3.3 candidate** in the window title after opening a video through Windows.
+For Start and **Open with** to launch 0.3.3, run its **Install Lost Eye.cmd**. Extracting a ZIP or merging source changes on GitHub does not update an installed copy. Check for **0.3.3** in the window title after opening a video through Windows.
 
 Format support depends on the codecs provided by Windows and the hardware/driver. Playback evidence and its limits are recorded in [VERIFICATION.md](VERIFICATION.md). This does not guarantee every codec, HDR, protected file or graphics device. Windows N editions without media components need those Windows components; no player app or third-party codec library is bundled.
 
@@ -54,8 +54,8 @@ Developer tools are needed only to build source. The executable needs none of th
 
 The native portable ZIP contains one app EXE, setup/uninstall launchers, documentation, build records, and matching native source archive. Extract it and run the EXE without installing developer tools. Windows supplies the media components; Microsoft runtime code is linked into the EXE.
 
-Earlier implementations, build tools and notices are preserved together in the repository's `legacy/` directory. Current source exports and native packages omit that archive. Use the root **Build Lost Eye.cmd** for the current player.
+The current branch contains the native player only. Earlier implementations and their original notices remain together in [Git history](https://github.com/cammaxwel-droid/Lost_Eye/tree/1701f1e701325eddfdd307e0e32abe8978a554a2/legacy). Use the root **Build Lost Eye.cmd** for the current player. For security reports and supported versions, see [SECURITY.md](SECURITY.md).
 
 ## License
 
-Native 0.3.3 candidate is source-available for personal, noncommercial source builds and use under [LICENSE](LICENSE). Commercial rights are reserved to the extent held by the owner; commercial use or redistribution needs separate permission. See [LICENSING.md](LICENSING.md) for earlier release rights and [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) for the current component inventory. Original duck assets and the generation record remain unchanged.
+Native 0.3.3 is source-available for personal, noncommercial source builds and use under [LICENSE](LICENSE). Commercial rights are reserved to the extent held by the owner; commercial use or redistribution needs separate permission. See [LICENSING.md](LICENSING.md) for earlier release rights and [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) for the current component inventory. Original duck assets and the generation record remain unchanged.

@@ -32,9 +32,9 @@
 #include "FolderVideos.h"
 using Microsoft::WRL::ComPtr;
 namespace fs = std::filesystem;
-constexpr wchar_t WindowClass[] = L"LostEye.Native.0.3.3";
-constexpr wchar_t SingleInstanceName[] = L"Local\\LostEye.Native.Player.0.3.3";
-constexpr wchar_t PlayerTitle[] = L"Lost Eye 0.3.3 candidate";
+constexpr wchar_t WindowClass[] = L"LostEye.Native.0.3.3.release";
+constexpr wchar_t SingleInstanceName[] = L"Local\\LostEye.Native.Player.0.3.3.release";
+constexpr wchar_t PlayerTitle[] = L"Lost Eye 0.3.3";
 constexpr UINT WM_READY = WM_APP + 1, WM_MEDIA = WM_APP + 2, WM_START = WM_APP + 3;
 enum ControlId { ID_OPEN=100, ID_BACK, ID_REWIND, ID_PLAY, ID_FORWARD, ID_SKIP, ID_LOOP, ID_MUTE, ID_FULL, ID_SEEK, ID_VOLUME };
 static std::wstring ExePath() { wchar_t p[32768]{}; GetModuleFileNameW(nullptr,p,32768); return p; }
@@ -214,7 +214,7 @@ static fs::path InstallCurrentUser() {
 struct App {
     HWND window{},video{},open{},backButton{},rewindButton{},play{},forwardButton{},skipButton{},loopBox{},muteButton{},fullButton{},seek{},volume{},time{},name{},percent{};
     HFONT font{}; HBRUSH background=CreateSolidBrush(RGB(28,29,33)),canvas=CreateSolidBrush(RGB(19,20,23));
-    UINT dpi=96; bool full=false,loop=false,muted=false,failed=false,loading=false,dragging=false,forceFrame=true,atEnd=false;
+    UINT dpi=96; bool full=false,loop=false,muted=false,failed=false,loading=false,startPending=false,dragging=false,forceFrame=true,atEnd=false;
     WINDOWPLACEMENT placement{sizeof(placement)}; std::wstring message=L"Open a video to start watching\n\nUse Open file or drop a video here.",pending,activeFile,navigationFile;
     int wheelRemainder=0; bool videoPressed=false;
     FILETIME activeWrite{}; ULONGLONG activeSize=0;
@@ -222,7 +222,7 @@ struct App {
     ULONGLONG shownAt=0,openedAt=0,lastUi=0; unsigned long long startFrame=0; bool initialized=false;
 #ifdef LOSTEYE_TEST
     std::wstring fixtures,report; int testStep=0,testFailures=0,loopCount=0; ULONGLONG testAt=0;
-    double previousTime=0,pausedTime=0;std::ofstream tests;int keyTarget=0;bool pausedBeforeInput=false;
+    double previousTime=0,pausedTime=0;std::ofstream tests;int keyTarget=0;bool pausedBeforeInput=false,testHoldCanPlay=false;
     void TestTick();
     void Test(const char* title,bool pass) {tests<<(pass?"PASS ":"FAIL ")<<title<<"\n";tests.flush();if(!pass)++testFailures;}
 #endif
@@ -294,7 +294,7 @@ struct App {
         if(!pending.empty()){auto file=pending;pending.clear();Open(file);} else Status(L"Open a video to start watching\n\nUse Open file or drop a video here.");
     }
     void Status(const std::wstring& value){message=value;InvalidateRect(video,nullptr,TRUE);}
-    void Fail(const std::wstring& value){failed=true;loading=false;atEnd=false;activeFile.clear();if(engine)engine->media->Pause();EnableTransport(false);SetWindowTextW(play,L"Play");Status(value+L"\n\nUse Open file to choose another video.");}
+    void Fail(const std::wstring& value){failed=true;loading=false;startPending=false;atEnd=false;activeFile.clear();if(engine)engine->media->Pause();EnableTransport(false);SetWindowTextW(play,L"Play");Status(value+L"\n\nUse Open file to choose another video.");}
     void Open(const std::wstring& path) {
         if(path.empty())return;
         std::wstring file;try{file=fs::absolute(path).lexically_normal().wstring();}catch(...){Fail(L"This file path is invalid.");return;}
@@ -303,7 +303,7 @@ struct App {
         navigationFile=file;
         SetWindowTextW(name,fs::path(file).filename().c_str());SetWindowTextW(window,(fs::path(file).filename().wstring()+L" - "+PlayerTitle).c_str());
         if(!engine){pending=file;Status(initialized?L"The Windows playback engine is unavailable.":L"Starting video playback...");return;}
-        engine->media->Pause();failed=false;loading=true;dragging=false;forceFrame=true;atEnd=false;startFrame=engine->frames;openedAt=GetTickCount64();
+        engine->media->Pause();failed=false;loading=true;startPending=false;dragging=false;forceFrame=true;atEnd=false;startFrame=engine->frames;openedAt=GetTickCount64();
         EnableTransport(false);SendMessageW(seek,TBM_SETPOS,TRUE,0);SetWindowTextW(time,L"0:00 / 0:00");
         WIN32_FILE_ATTRIBUTE_DATA info{};
         if(!GetFileAttributesExW(file.c_str(),GetFileExInfoStandard,&info)||(info.dwFileAttributes&FILE_ATTRIBUTE_DIRECTORY)){Fail(L"This file is missing or unavailable.");return;}
@@ -317,16 +317,20 @@ struct App {
         // Convert paths (including spaces, Unicode and #) to escaped file URLs for MF.
         DWORD size=32768;std::vector<wchar_t> url(size);auto hr=UrlCreateFromPathW(file.c_str(),url.data(),&size,0);
         if(FAILED(hr)){Fail(L"Windows couldn't read this file path.");return;}
-        Status(L"Opening video...");BSTR source=SysAllocString(url.data());hr=engine->media->SetSource(source);SysFreeString(source);
+        Status(L"Opening video...");startPending=true;BSTR source=SysAllocString(url.data());hr=engine->media->SetSource(source);SysFreeString(source);
         if(FAILED(hr)){Fail(L"Windows couldn't open this video ("+ErrorCode(hr)+L").");return;}
         activeFile=file;activeSize=fileSize;activeWrite=info.ftLastWriteTime;
         engine->media->SetLoop(loop);ApplyVolume();
     }
     void OnMedia(DWORD event) {
         if(!engine||failed)return;
+        #ifdef LOSTEYE_TEST
+        // Exercise the real first-frame-before-CANPLAY ordering deterministically.
+        if(testHoldCanPlay&&event==MF_MEDIA_ENGINE_EVENT_CANPLAY)return;
+#endif
         if(event==MF_MEDIA_ENGINE_EVENT_CANPLAY){
             if(!engine->media->HasVideo()){Fail(L"No video track was found in this file.");return;}
-            if(loading){auto hr=engine->media->Play();if(FAILED(hr))Fail(L"Windows couldn't play this video ("+ErrorCode(hr)+L").");}
+            if(startPending){startPending=false;auto hr=engine->media->Play();if(FAILED(hr))Fail(L"Windows couldn't play this video ("+ErrorCode(hr)+L").");}
         } else if(event==MF_MEDIA_ENGINE_EVENT_ERROR){
             ComPtr<IMFMediaError> err;engine->media->GetError(&err);HRESULT hr=err?err->GetExtendedErrorCode():E_FAIL;
             Fail(L"Windows couldn't play this file. It may be damaged,\nor its video/audio format isn't available on this PC.\n"+ErrorCode(hr));
@@ -389,7 +393,12 @@ struct App {
     }
     void Tick(){
         if(engine&&!failed){
-            bool rendered=engine->Render(forceFrame);if(rendered){forceFrame=false;if(loading){loading=false;message.clear();}}
+            bool rendered=engine->Render(forceFrame);if(rendered){
+                forceFrame=false;
+                // A decoded frame can arrive before CANPLAY. Keep startup pending
+                // until that event requests playback, even if the first frame paints.
+                if(loading&&!startPending){loading=false;message.clear();}
+            }
             if(FAILED(engine->lastRender)&&(engine->lastRender==DXGI_ERROR_DEVICE_REMOVED||engine->lastRender==DXGI_ERROR_DEVICE_RESET))Fail(L"The graphics device was reset. Close Lost Eye and reopen this video.");
             if(loading&&GetTickCount64()-openedAt>30000)Fail(L"Windows is taking too long to open this video.\nTry a local file with a supported format.");
         }
@@ -472,6 +481,13 @@ struct App {
 #ifdef LOSTEYE_TEST
 void App::TestTick(){
     if(fixtures.empty())return;auto now=GetTickCount64();auto elapsed=now-testAt;
+    if(testHoldCanPlay&&engine&&engine->frames>startFrame){
+        testHoldCanPlay=false;
+        Test("First decoded frame keeps startup pending",loading&&engine->media->IsPaused());
+        OnMedia(MF_MEDIA_ENGINE_EVENT_CANPLAY);
+        Test("CANPLAY starts playback after the first frame",!engine->media->IsPaused());
+        if(engine->media->IsPaused()){DestroyWindow(window);return;}
+    }
     auto next=[&](int step){testStep=step;testAt=now;};
     auto file=[&](const wchar_t* name){return (fs::path(fixtures)/name).wstring();};
     auto click=[&](int id,HWND control){SendMessageW(window,WM_COMMAND,MAKEWPARAM(id,BN_CLICKED),reinterpret_cast<LPARAM>(control));};
@@ -479,19 +495,25 @@ void App::TestTick(){
     auto wheel=[&](HWND target,short delta){POINT point{S(25),S(25)};ClientToScreen(video,&point);PostMessageW(target,WM_MOUSEWHEEL,MAKEWPARAM(0,static_cast<WORD>(delta)),MAKELPARAM(point.x,point.y));};
     const HWND keyTargets[]={open,backButton,rewindButton,play,forwardButton,skipButton,loopBox,muteButton,fullButton,seek,volume,video,window};
     if(fixtures==L"--close-during-init"){if(now-shownAt>200){Test("Close during engine startup",!engine&&IsWindowVisible(window));DestroyWindow(window);}return;}
+    if((testStep==0&&now-shownAt>300)||(testStep>0&&elapsed>45000)){
+        RECT wr{},vr{};WINDOWPLACEMENT wp{sizeof(wp)};GetWindowRect(window,&wr);GetClientRect(video,&vr);GetWindowPlacement(window,&wp);
+        tests<<"STATE step="<<testStep<<" iconic="<<IsIconic(window)<<" visible="<<IsWindowVisible(window)<<" show="<<wp.showCmd<<" window="<<wr.left<<","<<wr.top<<","<<wr.right<<","<<wr.bottom<<" video="<<vr.right<<","<<vr.bottom<<" loading="<<loading<<" failed="<<failed;
+        if(engine)tests<<" paused="<<engine->media->IsPaused()<<" ready="<<engine->media->GetReadyState()<<" frames="<<engine->frames<<" render="<<engine->lastRender;
+        tests<<"\n";tests.flush();
+    }
     if(testStep>0&&elapsed>45000){Test("Step timed out",false);DestroyWindow(window);return;}
     switch(testStep){
     case 0:if(now-shownAt>300){Test("Window visible before slow engine startup",IsWindowVisible(window)&&!engine);Test("Time formatting",TimeText(3661)==L"1:01:01"&&TimeText(65)==L"1:05");next(1);}break;
     case 1:if(initialized){Test("Windows engine initialized",engine!=nullptr);if(!engine){DestroyWindow(window);break;}Test("Hardware Direct3D device and DXGI manager",engine->hardware&&engine->manager);tests<<"ADAPTER ";for(auto c:engine->adapter)tests<<static_cast<char>(c<128?c:'?');tests<<"\n";
-        HKEY sandbox{};std::wstring key=L"Software\\LostEye.Native.Tests."+std::to_wstring(GetCurrentProcessId());Check(HRESULT_FROM_WIN32(RegCreateKeyExW(HKEY_CURRENT_USER,key.c_str(),0,nullptr,0,KEY_ALL_ACCESS,nullptr,&sandbox,nullptr)));
+        HKEY sandbox{};std::wstring registryKey=L"Software\\LostEye.Native.Tests."+std::to_wstring(GetCurrentProcessId());Check(HRESULT_FROM_WIN32(RegCreateKeyExW(HKEY_CURRENT_USER,registryKey.c_str(),0,nullptr,0,KEY_ALL_ACCESS,nullptr,&sandbox,nullptr)));
         SetRegistry(sandbox,L"Software\\Classes\\.mp4",nullptr,L"Existing.Player");RegisterOpenWith(sandbox,L"C:\\Example folder\\Lost Eye.exe");
         wchar_t result[256]{};DWORD size=sizeof(result);RegGetValueW(sandbox,L"Software\\Classes\\.mp4",nullptr,RRF_RT_REG_SZ,nullptr,result,&size);Test("Open with preserves existing default",std::wstring(result)==L"Existing.Player");
-        size=sizeof(result);RegGetValueW(sandbox,L"Software\\Classes\\Applications\\Lost Eye.exe\\shell\\open\\command",nullptr,RRF_RT_REG_SZ,nullptr,result,&size);Test("Open with quotes paths",std::wstring(result)==L"\"C:\\Example folder\\Lost Eye.exe\" \"%1\"");RegCloseKey(sandbox);RegDeleteTreeW(HKEY_CURRENT_USER,key.c_str());
+        size=sizeof(result);RegGetValueW(sandbox,L"Software\\Classes\\Applications\\Lost Eye.exe\\shell\\open\\command",nullptr,RRF_RT_REG_SZ,nullptr,result,&size);Test("Open with quotes paths",std::wstring(result)==L"\"C:\\Example folder\\Lost Eye.exe\" \"%1\"");RegCloseKey(sandbox);RegDeleteTreeW(HKEY_CURRENT_USER,registryKey.c_str());
         Open(file(L"missing.mp4"));Test("Missing file is handled",failed);Open(file(L"empty.mp4"));Test("Empty file is handled",failed);Open(file(L"damaged.mp4"));next(2);}break;
-    case 2:if(failed){Test("Damaged file is handled",true);Test("Playback controls disabled after an error",!IsWindowEnabled(rewindButton)&&!IsWindowEnabled(play)&&!IsWindowEnabled(forwardButton));Test("Folder navigation available after an error",IsWindowEnabled(backButton)&&IsWindowEnabled(skipButton));Open(file(L"sample video.mp4"));next(3);}break;
+    case 2:if(failed){Test("Damaged file is handled",true);Test("Playback controls disabled after an error",!IsWindowEnabled(rewindButton)&&!IsWindowEnabled(play)&&!IsWindowEnabled(forwardButton));Test("Folder navigation available after an error",IsWindowEnabled(backButton)&&IsWindowEnabled(skipButton));testHoldCanPlay=true;Open(file(L"sample video.mp4"));next(3);}break;
     case 3:if(engine->frames>startFrame+4&&!loading){Test("MP4 opens after errors",!failed&&engine->media->GetCurrentTime()>0);Test("Decoded pixels reached Direct3D texture",engine->FrameHasPixels());Test("Frames presented to window",engine->frames>startFrame+4);muted=true;ApplyVolume();Test("Mute",engine->media->GetMuted());muted=false;SendMessageW(volume,TBM_SETPOS,TRUE,35);ApplyVolume();Test("Volume and unmute",std::abs(engine->media->GetVolume()-.35)<.01&&!engine->media->GetMuted());TogglePlay();next(4);}break;
     case 4:if(elapsed>400){pausedTime=engine->media->GetCurrentTime();next(5);}break;
-    case 5:if(elapsed>600){Test("Pause holds position",engine->media->IsPaused()&&std::abs(pausedTime-engine->media->GetCurrentTime())<.15);Seek(.5);TogglePlay();next(6);}break;
+    case 5:if(elapsed>600){Test("Pause holds position",engine->media->IsPaused()&&std::abs(pausedTime-engine->media->GetCurrentTime())<.15);OnMedia(MF_MEDIA_ENGINE_EVENT_CANPLAY);Test("Later CANPLAY preserves user pause",engine->media->IsPaused());Seek(.5);TogglePlay();next(6);}break;
     case 6:if(engine->media->GetCurrentTime()>3.5&&!engine->media->IsPaused()){
         Test("Seek and resume",true);TogglePlay();SetWindowPos(window,nullptr,0,0,S(700),S(450),SWP_NOMOVE|SWP_NOZORDER);
         RECT back{},rewind{},playRect{},forward{},skip{};GetWindowRect(backButton,&back);GetWindowRect(rewindButton,&rewind);GetWindowRect(play,&playRect);GetWindowRect(forwardButton,&forward);GetWindowRect(skipButton,&skip);
@@ -517,8 +539,10 @@ void App::TestTick(){
     case 22:if(engine->media->GetCurrentTime()>.2&&!engine->media->IsPaused()){Test("Play restarts after End",!atEnd);Seek(.5);next(23);}break;
     case 23:if(engine->media->GetCurrentTime()>3.5&&!engine->media->IsPaused()){RECT before{};GetWindowRect(window,&before);Fullscreen();Test("Fullscreen entered",full&&!(GetWindowLongPtrW(window,GWL_STYLE)&WS_OVERLAPPEDWINDOW));Fullscreen();RECT after{};GetWindowRect(window,&after);Test("Fullscreen restores bounds",!full&&EqualRect(&before,&after));SetWindowPos(window,nullptr,0,0,S(720),S(450),SWP_NOMOVE|SWP_NOZORDER);Test("Resize keeps frame rendering",engine->Render(true));SetLoop(true);Seek(.85);previousTime=engine->media->GetCurrentTime();loopCount=0;next(7);}break;
     case 24:pausedBeforeInput=engine->media->IsPaused();key(keyTargets[keyTarget],VK_SPACE,true);next(25);break;
-    case 25:if(elapsed>180){std::string label="Space toggles once with focus target "+std::to_string(keyTarget);Test(label.c_str(),engine->media->IsPaused()!=pausedBeforeInput&&full&&!loop&&activeFile==file(L"sample video.mp4")&&SendMessageW(volume,TBM_GETPOS,0,0)==35);key(keyTargets[keyTarget],VK_SPACE);next(26);}break;
-    case 26:if(elapsed>180){Test("Space key-up does not activate focused control",engine->media->IsPaused()==pausedBeforeInput&&full&&!loop);if(++keyTarget<static_cast<int>(std::size(keyTargets))){next(24);break;}Fullscreen();
+    case 25:if(elapsed>180){std::string label="Space toggles once with focus target "+std::to_string(keyTarget);Test(label.c_str(),(engine->media->IsPaused()!=FALSE)!=pausedBeforeInput&&full&&!loop&&activeFile==file(L"sample video.mp4")&&SendMessageW(volume,TBM_GETPOS,0,0)==35);key(keyTargets[keyTarget],VK_SPACE);next(26);}break;
+    case 26:if(elapsed>180){Test("Space key-up does not activate focused control",(engine->media->IsPaused()!=FALSE)==pausedBeforeInput&&full&&!loop);if(++keyTarget<static_cast<int>(std::size(keyTargets))){next(24);break;}Fullscreen();
+        RECT testWindow{},testVideo{};GetWindowRect(window,&testWindow);GetClientRect(video,&testVideo);POINT testPoint{S(25),S(25)};ClientToScreen(video,&testPoint);
+        Test("Fullscreen restores usable pointer bounds",!IsIconic(window)&&testVideo.right>S(25)&&testVideo.bottom>S(25)&&PtInRect(&testWindow,testPoint));tests<<"INPUT GEOMETRY iconic="<<IsIconic(window)<<" show="<<placement.showCmd<<" window="<<testWindow.left<<","<<testWindow.top<<","<<testWindow.right<<","<<testWindow.bottom<<" video="<<testVideo.right<<","<<testVideo.bottom<<" wheel="<<testPoint.x<<","<<testPoint.y<<" volume="<<SendMessageW(volume,TBM_GETPOS,0,0)<<" paused="<<engine->media->IsPaused()<<" loading="<<loading<<" failed="<<failed<<"\n";tests.flush();
         SendMessageW(video,WM_LBUTTONDOWN,MK_LBUTTON,MAKELPARAM(20,20));SendMessageW(video,WM_LBUTTONUP,0,MAKELPARAM(20,20));Test("Video click resumes",!engine->media->IsPaused());
         SendMessageW(video,WM_LBUTTONDOWN,MK_LBUTTON,MAKELPARAM(20,20));SendMessageW(video,WM_LBUTTONUP,0,MAKELPARAM(20,20));Test("Second video click pauses without fullscreen",engine->media->IsPaused()&&!full);
         HDC screen=GetDC(loopBox),memory=CreateCompatibleDC(screen);HBITMAP bitmap=CreateCompatibleBitmap(screen,S(74),S(34));auto old=SelectObject(memory,bitmap);SendMessageW(loopBox,WM_PRINTCLIENT,reinterpret_cast<WPARAM>(memory),PRF_CLIENT);bool light=false;for(int y=S(5);y<S(29);++y)for(int x=S(25);x<S(70);++x){COLORREF p=GetPixel(memory,x,y);if(p!=CLR_INVALID&&GetRValue(p)>200&&GetGValue(p)>200&&GetBValue(p)>200)light=true;}Test("Loop label paints light text on dark background",light&&GetPixel(memory,0,0)==RGB(28,29,33));SelectObject(memory,old);DeleteObject(bitmap);DeleteDC(memory);ReleaseDC(loopBox,screen);
@@ -581,7 +605,7 @@ int WINAPI wWinMain(HINSTANCE instance,HINSTANCE,LPWSTR,int show){
     }
     HANDLE single=nullptr;
 #ifndef LOSTEYE_TEST
-    // Only hand files to this version. An older installed window must not absorb a candidate launch.
+    // Only hand files to this version. An older or candidate window must not absorb a release launch.
     single=CreateMutexW(nullptr,FALSE,SingleInstanceName);
     if(single&&GetLastError()==ERROR_ALREADY_EXISTS){
         HWND existing=nullptr;for(int i=0;i<20&&!existing;++i){existing=FindWindowW(WindowClass,nullptr);if(!existing)Sleep(100);}
@@ -601,7 +625,12 @@ int WINAPI wWinMain(HINSTANCE instance,HINSTANCE,LPWSTR,int show){
 #endif
         UINT dpi=GetDpiForSystem();RECT r{0,0,MulDiv(900,dpi,96),MulDiv(560,dpi,96)};AdjustWindowRectExForDpi(&r,WS_OVERLAPPEDWINDOW,FALSE,0,dpi);
         HWND window=CreateWindowExW(WS_EX_ACCEPTFILES,WindowClass,PlayerTitle,WS_OVERLAPPEDWINDOW|WS_CLIPCHILDREN,CW_USEDEFAULT,CW_USEDEFAULT,r.right-r.left,r.bottom-r.top,nullptr,nullptr,instance,&app);
-        if(!window)throw HRESULT_FROM_WIN32(GetLastError());ShowWindow(window,show);if(!app.pending.empty())app.Open(app.pending);UpdateWindow(window);app.shownAt=GetTickCount64();PostMessageW(window,WM_START,0,0);
+        if(!window)throw HRESULT_FROM_WIN32(GetLastError());ShowWindow(window,show);
+#ifdef LOSTEYE_TEST
+        // Pointer checks require a restored window, even from a minimized launcher.
+        ShowWindow(window,SW_RESTORE);
+#endif
+        if(!app.pending.empty())app.Open(app.pending);UpdateWindow(window);app.shownAt=GetTickCount64();PostMessageW(window,WM_START,0,0);
         MSG msg{};while(GetMessageW(&msg,nullptr,0,0)>0){
             bool consumed=app.HandleInput(msg);
             if(!consumed&&!IsDialogMessageW(window,&msg)){TranslateMessage(&msg);DispatchMessageW(&msg);}
