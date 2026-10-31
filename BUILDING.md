@@ -29,7 +29,7 @@ The executable is portable and needs no developer tools to run. It is currently 
 
 ## Optional installation and Open with
 
-Double-click **Install Lost Eye.cmd** beside the newly built executable. It runs that executable's built-in `--install` command, copies it and its embedded uninstall scripts to `%LOCALAPPDATA%\Programs\Lost Eye\0.3.3`, and adds Start and **Open with** entries for your Windows account. It does not change your default video player and does not need administrator access.
+Double-click **Install Lost Eye.cmd** beside the newly built executable. It runs that executable's built-in `--install` command, copies it and its embedded uninstall scripts to `%LOCALAPPDATA%\Programs\Lost Eye\0.3.3`, and adds **Open with** entries for your Windows account. It creates a Start shortcut only if one is missing; an existing shortcut and any earlier backup are preserved unchanged. It does not change your default video player and does not need administrator access.
 
 Then right-click a video, choose **Open with > Choose another app**, and select Lost Eye. The installer preserves a different existing executable in the same version's installation folder and reports that conflict instead of overwriting it. You can still run the newly built executable directly from its output folder. A rebuild with changed source is not automatically a new application version.
 

@@ -10,7 +10,7 @@ Lost Eye uses the computer's graphics device through Direct3D 11, with Windows M
 
 Run **Lost Eye.exe**. It is a self-contained executable: keep or move it wherever you want. Open a video with **Open file**, drop a video onto the window, or pass its path on the command line.
 
-For convenient Windows integration, run **Install Lost Eye.cmd** once. It copies the EXE and uninstall scripts to `%LOCALAPPDATA%\Programs\Lost Eye\0.3.3`, adds Lost Eye to Start, and registers it in **Open with**. It requires no administrator rights and does not change your default player. Older version folders are preserved. Existing different files in the same version folder are not overwritten. If you installed a 0.3.3 review candidate, close it and run its **Uninstaller.cmd** before installing this final 0.3.3 build. Your videos are preserved.
+For convenient Windows integration, run **Install Lost Eye.cmd** once. It copies the EXE and uninstall scripts to `%LOCALAPPDATA%\Programs\Lost Eye\0.3.3`, creates a Start shortcut if one is missing, and registers it in **Open with**. An existing Start shortcut is kept exactly as it is, including your edits or an older-version target; existing shortcut backups are preserved. It requires no administrator rights and does not change your default player. Older version folders are preserved. Existing different files in the same version folder are not overwritten. If you installed a 0.3.3 review candidate, close it and run its **Uninstaller.cmd** before installing this final 0.3.3 build. Your videos are preserved.
 
 Right-click a video > **Open with > Lost Eye**. If you want double-clicking videos to use Lost Eye, choose **Choose another app > Lost Eye > Always** yourself. Use **Just once** to leave defaults unchanged.
 

@@ -183,7 +183,19 @@ static void WriteInstallResource(const fs::path& directory,const wchar_t* name,i
     auto error=success?ERROR_SUCCESS:GetLastError();CloseHandle(file);
     if(!success){DeleteFileW(path.c_str());throw HRESULT_FROM_WIN32(error==ERROR_SUCCESS?ERROR_WRITE_FAULT:error);}
 }
-static fs::path InstallCurrentUser() {
+static bool CreateStartShortcutIfMissing(const fs::path& shortcut,const fs::path& destination) {
+    const auto directory=destination.parent_path();
+    ComPtr<IShellLinkW> link;Check(CoCreateInstance(CLSID_ShellLink,nullptr,CLSCTX_INPROC_SERVER,IID_PPV_ARGS(&link)));
+    Check(link->SetPath(destination.c_str()));Check(link->SetWorkingDirectory(directory.c_str()));Check(link->SetIconLocation(destination.c_str(),0));Check(link->SetDescription(L"Lost Eye video player"));
+    ComPtr<IPersistStream> persist;Check(link.As(&persist));ComPtr<IStream> stream;
+    // Create-only at the filesystem boundary: never overwrite a shortcut the user
+    // changed, even if it appears between a check and the save. Keep old backups.
+    auto hr=SHCreateStreamOnFileEx(shortcut.c_str(),STGM_WRITE|STGM_SHARE_EXCLUSIVE|STGM_FAILIFTHERE,FILE_ATTRIBUTE_NORMAL,TRUE,nullptr,&stream);
+    if(hr==STG_E_FILEALREADYEXISTS||hr==HRESULT_FROM_WIN32(ERROR_FILE_EXISTS)||hr==HRESULT_FROM_WIN32(ERROR_ALREADY_EXISTS))return false;
+    Check(hr);Check(persist->Save(stream.Get(),TRUE));Check(stream->Commit(STGC_DEFAULT));
+    return true;
+}
+static fs::path InstallCurrentUser(bool& keptShortcut) {
     auto directory=KnownFolder(FOLDERID_LocalAppData)/L"Programs"/L"Lost Eye"/L"0.3.3";
     for(auto current=directory;!current.empty();){
         auto attributes=GetFileAttributesW(current.c_str());
@@ -201,13 +213,7 @@ static fs::path InstallCurrentUser() {
     WriteInstallResource(directory,L"Uninstall-LostEye.ps1",102);
     RegisterOpenWith(HKEY_CURRENT_USER,destination.wstring());
     auto shortcut=KnownFolder(FOLDERID_Programs)/L"Lost Eye.lnk";
-    if(fs::exists(shortcut)) {
-        auto backup=directory/L"Previous Lost Eye shortcut.lnk";
-        if(!fs::exists(backup)&&!CopyFileW(shortcut.c_str(),backup.c_str(),TRUE))throw HRESULT_FROM_WIN32(GetLastError());
-    }
-    ComPtr<IShellLinkW> link;Check(CoCreateInstance(CLSID_ShellLink,nullptr,CLSCTX_INPROC_SERVER,IID_PPV_ARGS(&link)));
-    Check(link->SetPath(destination.c_str()));Check(link->SetWorkingDirectory(directory.c_str()));Check(link->SetIconLocation(destination.c_str(),0));Check(link->SetDescription(L"Lost Eye video player"));
-    ComPtr<IPersistFile> persist;Check(link.As(&persist));Check(persist->Save(shortcut.c_str(),TRUE));
+    keptShortcut=!CreateStartShortcutIfMissing(shortcut,destination);
     SHChangeNotify(SHCNE_ASSOCCHANGED,SHCNF_IDLIST,nullptr,nullptr);
     return destination;
 }
@@ -566,11 +572,66 @@ void App::TestTick(){
     }
 }
 #endif
+#ifdef LOSTEYE_TEST
+static int VerifyInstallShortcuts(const fs::path& root,const fs::path& report) {
+    if(fs::exists(root)||fs::exists(report))return 2;
+    std::ofstream output(report);if(!output)return 2;
+    int checks=0,failures=0;
+    auto check=[&](const char* label,bool pass){++checks;if(!pass)++failures;output<<(pass?"PASS ":"FAIL ")<<label<<"\n";output.flush();};
+    auto bytes=[](const fs::path& path){std::ifstream input(path,std::ios::binary);if(!input)throw E_FAIL;return std::string(std::istreambuf_iterator<char>(input),std::istreambuf_iterator<char>());};
+    auto load=[](const fs::path& path){ComPtr<IShellLinkW> link;Check(CoCreateInstance(CLSID_ShellLink,nullptr,CLSCTX_INPROC_SERVER,IID_PPV_ARGS(&link)));ComPtr<IPersistFile> persist;Check(link.As(&persist));Check(persist->Load(path.c_str(),STGM_READ));return link;};
+    auto custom=[&](const fs::path& path,const fs::path& target){
+        ComPtr<IShellLinkW> link;Check(CoCreateInstance(CLSID_ShellLink,nullptr,CLSCTX_INPROC_SERVER,IID_PPV_ARGS(&link)));
+        Check(link->SetPath(target.c_str()));Check(link->SetArguments(L"--user-choice custom argument"));Check(link->SetWorkingDirectory(root.c_str()));
+        Check(link->SetDescription(L"My changed shortcut"));Check(link->SetIconLocation(target.c_str(),3));Check(link->SetShowCmd(SW_SHOWMINNOACTIVE));Check(link->SetHotkey(MAKEWORD('P',HOTKEYF_CONTROL|HOTKEYF_ALT)));
+        ComPtr<IPersistFile> persist;Check(link.As(&persist));Check(persist->Save(path.c_str(),TRUE));
+    };
+    try {
+        fs::create_directory(root);
+        const auto installed=root/L"installed",start=root/L"Start";
+        fs::create_directory(installed);fs::create_directory(start);
+        const auto executable=installed/L"Lost Eye.exe",shortcut=start/L"Lost Eye.lnk";
+        {std::ofstream file(executable);file<<"inert shortcut test target";}
+        check("Missing Start shortcut is created",CreateStartShortcutIfMissing(shortcut,executable));
+        auto link=load(shortcut);wchar_t value[32768]{};int iconIndex=-1;
+        Check(link->GetPath(value,32768,nullptr,SLGP_RAWPATH));check("New shortcut target loads correctly",fs::path(value)==executable);
+        Check(link->GetWorkingDirectory(value,32768));check("New shortcut working directory loads correctly",fs::path(value)==installed);
+        Check(link->GetIconLocation(value,32768,&iconIndex));check("New shortcut icon loads correctly",fs::path(value)==executable&&iconIndex==0);
+        Check(link->GetDescription(value,32768));check("New shortcut description loads correctly",std::wstring(value)==L"Lost Eye video player");
+        Check(link->GetArguments(value,32768));check("New shortcut has no injected arguments",value[0]==0);link.Reset();
+        const auto original=bytes(shortcut);
+        check("Ordinary reinstall reports existing shortcut preserved",!CreateStartShortcutIfMissing(shortcut,executable));
+        check("Ordinary reinstall preserves exact shortcut bytes",bytes(shortcut)==original);
+        for(bool oldBackup:{false,true})for(bool sameTarget:{false,true}) {
+            auto caseRoot=root/(std::wstring(oldBackup?L"with-backup-":L"no-backup-")+(sameTarget?L"same-target":L"other-target"));
+            auto caseInstall=caseRoot/L"installed",caseStart=caseRoot/L"Start";fs::create_directories(caseInstall);fs::create_directory(caseStart);
+            auto target=caseInstall/L"Lost Eye.exe",changed=caseStart/L"Lost Eye.lnk",backup=caseInstall/L"Previous Lost Eye shortcut.lnk";
+            {std::ofstream file(target);file<<"inert shortcut test target";}
+            custom(changed,sameTarget?target:executable);
+            if(oldBackup)custom(backup,executable);
+            const auto before=bytes(changed),backupBefore=oldBackup?bytes(backup):std::string();
+            output<<"CASE backup="<<oldBackup<<" sameTarget="<<sameTarget<<"\n";
+            check("Changed shortcut is reported as preserved",!CreateStartShortcutIfMissing(changed,target));
+            check("Changed target and all custom fields remain byte-identical",bytes(changed)==before);
+            check("Old backup stays unchanged and absent backup is not created",oldBackup?bytes(backup)==backupBefore:!fs::exists(backup));
+            CreateStartShortcutIfMissing(changed,target);
+            check("Repeated reinstall still preserves the changed shortcut",bytes(changed)==before);
+        }
+        const auto unknown=start/L"user-owned.lnk";{std::ofstream file(unknown);file<<"user-owned non-shortcut contents";}
+        const auto unknownBefore=bytes(unknown);
+        check("Existing non-shortcut file is preserved",!CreateStartShortcutIfMissing(unknown,executable)&&bytes(unknown)==unknownBefore);
+        bool failed=false;try{CreateStartShortcutIfMissing(root/L"missing-parent"/L"Lost Eye.lnk",executable);}catch(HRESULT){failed=true;}
+        check("Missing parent is an error rather than reported success",failed);
+    }catch(HRESULT hr){output<<"ERROR "<<std::hex<<static_cast<unsigned>(hr)<<"\n";check("Shortcut test completed",false);}catch(...){check("Shortcut test completed",false);}
+    output<<"CHECKS "<<checks<<"\nFAILURES "<<failures<<"\n";return failures?1:0;
+}
+#endif
 int WINAPI wWinMain(HINSTANCE instance,HINSTANCE,LPWSTR,int show){
     SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
     HRESULT com=CoInitializeEx(nullptr,COINIT_APARTMENTTHREADED);if(FAILED(com))return 1;
     int argc=0;LPWSTR* argv=CommandLineToArgvW(GetCommandLineW(),&argc);std::wstring path=argc>1?argv[1]:L"";
 #ifdef LOSTEYE_TEST
+    if(path==L"--verify-install-shortcuts"&&argc==4){int result=VerifyInstallShortcuts(argv[2],argv[3]);LocalFree(argv);CoUninitialize();return result;}
     if(path==L"--verify-shell"&&argc>=4){
         std::wofstream report{fs::path(argv[3])};report.setf(std::ios::unitbuf);report<<L"START shell enumeration\n";int result=1;
         ComPtr<IEnumAssocHandlers> handlers;HRESULT hr=SHAssocEnumHandlers(L".mp4",ASSOC_FILTER_NONE,&handlers);
@@ -596,7 +657,7 @@ int WINAPI wWinMain(HINSTANCE instance,HINSTANCE,LPWSTR,int show){
     }
 #endif
     if(path==L"--install") {
-        int result=0;try{InstallCurrentUser();if(argc<3||std::wstring(argv[2])!=L"--quiet")MessageBoxW(nullptr,L"Lost Eye is ready.\n\nRight-click a video > Open with > Lost Eye.\nYou can also launch Lost Eye from Start.\n\nYour default player has not changed.",L"Lost Eye",MB_OK|MB_ICONINFORMATION);}
+        int result=0;try{bool keptShortcut=false;InstallCurrentUser(keptShortcut);if(argc<3||std::wstring(argv[2])!=L"--quiet"){std::wstring message=L"Lost Eye is ready.\n\nRight-click a video > Open with > Lost Eye.\n";message+=keptShortcut?L"Your existing Start shortcut was kept unchanged.":L"You can also launch Lost Eye from Start.";message+=L"\n\nYour default player has not changed.";MessageBoxW(nullptr,message.c_str(),L"Lost Eye",MB_OK|MB_ICONINFORMATION);}}
         catch(...){result=1;if(argc<3||std::wstring(argv[2])!=L"--quiet")MessageBoxW(nullptr,L"Lost Eye couldn't finish setup. You can still run this EXE directly. An existing different copy is never overwritten.",L"Lost Eye",MB_OK|MB_ICONERROR);}
         LocalFree(argv);CoUninitialize();return result;
     }
