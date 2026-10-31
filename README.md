@@ -54,7 +54,7 @@ Developer tools are needed only to build source. The executable needs none of th
 
 The native portable ZIP contains one app EXE, setup/uninstall launchers, documentation, build records, and matching native source archive. Extract it and run the EXE without installing developer tools. Windows supplies the media components; Microsoft runtime code is linked into the EXE.
 
-Earlier implementations, build tools and notices are preserved together in the repository's `legacy/` directory. Current source exports and native packages omit that archive. Use the root **Build Lost Eye.cmd** for the current player.
+The current branch contains the native player only. Earlier implementations and their original notices remain together in [Git history](https://github.com/cammaxwel-droid/Lost_Eye/tree/1701f1e701325eddfdd307e0e32abe8978a554a2/legacy). Use the root **Build Lost Eye.cmd** for the current player. For security reports and supported versions, see [SECURITY.md](SECURITY.md).
 
 ## License
 
