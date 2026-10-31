@@ -32,7 +32,7 @@ function New-TestFixture {
     $caseRoot = Join-Path $testRoot ('case-' + $script:caseNumber)
     $local = Join-Path $caseRoot 'Local'
     $programs = Join-Path $caseRoot 'Start'
-    $directory = Join-Path $local 'Programs\Lost Eye\0.3.3'
+    $directory = Join-Path $local 'Programs\Lost Eye\0.3.4'
     [void][IO.Directory]::CreateDirectory($directory)
     [void][IO.Directory]::CreateDirectory($programs)
     $exe = Join-Path $directory 'Lost Eye.exe'
@@ -85,12 +85,12 @@ try {
 using System.Reflection;
 [assembly: AssemblyTitle("Lost Eye")]
 [assembly: AssemblyProduct("Lost Eye")]
-[assembly: AssemblyFileVersion("0.3.3.0")]
+[assembly: AssemblyFileVersion("0.3.4.0")]
 public class LostEyeUninstallFixture { public static void Main() {} }
 '@ -OutputAssembly $PlayerExecutable -OutputType WindowsApplication
     }
     $identity = [Diagnostics.FileVersionInfo]::GetVersionInfo($PlayerExecutable)
-    Assert-Test ($identity.ProductName -eq 'Lost Eye' -and $identity.OriginalFilename -eq 'Lost Eye.exe' -and $identity.FileBuildPart -eq 3) 'fixture has expected 0.3.3 identity'
+    Assert-Test ($identity.ProductName -eq 'Lost Eye' -and $identity.OriginalFilename -eq 'Lost Eye.exe' -and $identity.FileBuildPart -eq 4) 'fixture has expected 0.3.4 identity'
 
     $f = New-TestFixture
     [void](Invoke-LostEyeUninstall $f.Context)
@@ -115,7 +115,7 @@ public class LostEyeUninstallFixture { public static void Main() {} }
     Assert-Test ($result.RemainingFiles.Count -eq 1) 'remaining file reported'
 
     $f = New-TestFixture
-    $newer = Join-Path ([IO.Path]::GetDirectoryName($f.Directory)) '0.3.4\Lost Eye.exe'
+    $newer = Join-Path ([IO.Path]::GetDirectoryName($f.Directory)) '0.3.5\Lost Eye.exe'
     [void][IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($newer))
     [IO.File]::WriteAllText($newer, 'newer player preserved')
     $newCommand = '"' + $newer + '" "%1"'

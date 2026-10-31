@@ -1,8 +1,8 @@
-# Lost Eye 0.3.3
+# Lost Eye 0.3.4
 
 A compact Windows 11 x64 video player with the original yellow duck icon.
 
-Download [Lost-Eye-0.3.3-win-x64.zip](https://github.com/cammaxwel-droid/Lost_Eye/releases/download/v0.3.3/Lost-Eye-0.3.3-win-x64.zip), extract it, and run **Lost Eye.exe**. No installation or developer tools are required to play videos. The window title says **Lost Eye 0.3.3**. Matching source and SHA-256 checksums are available on the [release page](https://github.com/cammaxwel-droid/Lost_Eye/releases/tag/v0.3.3).
+Download [Lost-Eye-0.3.4-win-x64.zip](https://github.com/cammaxwel-droid/Lost_Eye/releases/download/v0.3.4/Lost-Eye-0.3.4-win-x64.zip), extract it, and run **Lost Eye.exe**. No installation or developer tools are required to play videos. The window title says **Lost Eye 0.3.4**. Matching source and SHA-256 checksums are available on the [release page](https://github.com/cammaxwel-droid/Lost_Eye/releases/tag/v0.3.4).
 
 Lost Eye uses the computer's graphics device through Direct3D 11, with Windows Media Foundation providing video decoding and audio. It requests hardware acceleration and shares the graphics device with the media engine. Windows may decode unsupported formats in software; if a hardware graphics device cannot be created, the app can use software rendering. No separate player installation is required.
 
@@ -10,15 +10,15 @@ Lost Eye uses the computer's graphics device through Direct3D 11, with Windows M
 
 Run **Lost Eye.exe**. It is a self-contained executable: keep or move it wherever you want. Open a video with **Open file**, drop a video onto the window, or pass its path on the command line.
 
-For convenient Windows integration, run **Install Lost Eye.cmd** once. It copies the EXE and uninstall scripts to `%LOCALAPPDATA%\Programs\Lost Eye\0.3.3`, adds Lost Eye to Start, and registers it in **Open with**. It requires no administrator rights and does not change your default player. Older version folders are preserved. Existing different files in the same version folder are not overwritten. If you installed a 0.3.3 review candidate, close it and run its **Uninstaller.cmd** before installing this final 0.3.3 build. Your videos are preserved.
+For convenient Windows integration, run **Install Lost Eye.cmd** once. It copies the EXE and uninstall scripts to `%LOCALAPPDATA%\Programs\Lost Eye\0.3.4`, creates a Start shortcut if one is missing, and registers it in **Open with**. An existing Start shortcut is kept exactly as it is, including your edits or an older-version target; existing shortcut backups are preserved. It requires no administrator rights and does not change your default player. Older version folders are preserved. Existing different files in the same version folder are not overwritten. Your videos are preserved.
 
 Right-click a video > **Open with > Lost Eye**. If you want double-clicking videos to use Lost Eye, choose **Choose another app > Lost Eye > Always** yourself. Use **Just once** to leave defaults unchanged.
 
 ## Uninstall
 
-Close Lost Eye, then double-click **Uninstaller.cmd** in the extracted portable folder or `%LOCALAPPDATA%\Programs\Lost Eye\0.3.3`. Keep its companion **Uninstall-LostEye.ps1** beside it. The installed EXE also contains both scripts, so running its setup does not depend on retaining the download folder.
+Close Lost Eye, then double-click **Uninstaller.cmd** in the extracted portable folder or `%LOCALAPPDATA%\Programs\Lost Eye\0.3.4`. Keep its companion **Uninstall-LostEye.ps1** beside it. The installed EXE also contains both scripts, so running its setup does not depend on retaining the download folder.
 
-The uninstaller removes the installed 0.3.3 copy and Windows entries that still belong to that copy. It preserves videos, source/download folders, older versions, unknown files and entries belonging to another installation. Your default-player choices are not rewritten. If you previously chose Lost Eye as a default, choose a replacement in Windows after uninstalling. If a previous Start shortcut was backed up, it is restored when safe.
+The uninstaller removes the installed 0.3.4 copy and Windows entries that still belong to that copy. It preserves videos, source/download folders, older versions, unknown files and entries belonging to another installation. Your default-player choices are not rewritten. If you previously chose Lost Eye as a default, choose a replacement in Windows after uninstalling. If a previous Start shortcut was backed up, it is restored when safe.
 
 Uninstall needs no administrator rights. It reports a running player or files it cannot safely remove instead of forcing deletion. A portable-only copy can simply be removed from its extracted folder when you no longer want it.
 
@@ -36,7 +36,7 @@ The player stays dark, with light text for **Loop** and the other controls. Ther
 
 The window appears before the engine initializes. Opening another video reuses the existing window for this version. An older running version cannot receive files launched through this release. Missing, empty, damaged or unavailable formats show a message and let you choose another file.
 
-For Start and **Open with** to launch 0.3.3, run its **Install Lost Eye.cmd**. Extracting a ZIP or merging source changes on GitHub does not update an installed copy. Check for **0.3.3** in the window title after opening a video through Windows.
+To register 0.3.4 in **Open with**, run its **Install Lost Eye.cmd**. An existing Start shortcut keeps its original target; to launch 0.3.4 from it, update that shortcut yourself or run the new EXE directly. Extracting a ZIP or merging source changes on GitHub does not update an installed copy. Check for **0.3.4** in the window title after opening a video through Windows.
 
 Format support depends on the codecs provided by Windows and the hardware/driver. Playback evidence and its limits are recorded in [VERIFICATION.md](VERIFICATION.md). This does not guarantee every codec, HDR, protected file or graphics device. Windows N editions without media components need those Windows components; no player app or third-party codec library is bundled.
 
@@ -58,4 +58,4 @@ The current branch contains the native player only. Earlier implementations and 
 
 ## License
 
-Native 0.3.3 is source-available for personal, noncommercial source builds and use under [LICENSE](LICENSE). Commercial rights are reserved to the extent held by the owner; commercial use or redistribution needs separate permission. See [LICENSING.md](LICENSING.md) for earlier release rights and [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) for the current component inventory. Original duck assets and the generation record remain unchanged.
+Native 0.3.4 is source-available for personal, noncommercial source builds and use under [LICENSE](LICENSE). Commercial rights are reserved to the extent held by the owner; commercial use or redistribution needs separate permission. See [LICENSING.md](LICENSING.md) for earlier release rights and [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) for the current component inventory. Original duck assets and the generation record remain unchanged.

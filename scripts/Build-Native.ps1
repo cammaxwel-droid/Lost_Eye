@@ -1,5 +1,5 @@
 param(
-    [string]$OutputName = 'Lost-Eye-0.3.3-win-x64',
+    [string]$OutputName = 'Lost-Eye-0.3.4-win-x64',
     [switch]$WithTests,
     [switch]$TestsOnly
 )
