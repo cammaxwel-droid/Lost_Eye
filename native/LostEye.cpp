@@ -142,6 +142,21 @@ static void SetRegistry(HKEY root,const std::wstring& key,const wchar_t* name,co
     HKEY h{}; auto status=RegCreateKeyExW(root,key.c_str(),0,nullptr,0,KEY_SET_VALUE,nullptr,&h,nullptr);Check(HRESULT_FROM_WIN32(status));
     status=RegSetValueExW(h,name,0,REG_SZ,reinterpret_cast<const BYTE*>(value.c_str()),static_cast<DWORD>((value.size()+1)*sizeof(wchar_t)));RegCloseKey(h);Check(HRESULT_FROM_WIN32(status));
 }
+static void RemoveLegacySupportedType(HKEY root,const std::wstring& key,const wchar_t* name) {
+    HKEY h{};
+    auto status=RegOpenKeyExW(root,key.c_str(),0,KEY_QUERY_VALUE|KEY_SET_VALUE,&h);
+    if(status==ERROR_FILE_NOT_FOUND) return;
+    Check(HRESULT_FROM_WIN32(status));
+    DWORD type=0;
+    wchar_t value=0;
+    DWORD bytes=sizeof(value);
+    status=RegQueryValueExW(h,name,nullptr,&type,reinterpret_cast<BYTE*>(&value),&bytes);
+    if(status==ERROR_SUCCESS&&type==REG_SZ&&bytes==sizeof(value)&&value==0) {
+        status=RegDeleteValueW(h,name);
+    }
+    RegCloseKey(h);
+    if(status!=ERROR_FILE_NOT_FOUND&&status!=ERROR_MORE_DATA) Check(HRESULT_FROM_WIN32(status));
+}
 static const std::vector<std::wstring> Extensions={L".mp4",L".m4v",L".mov",L".mkv",L".webm",L".avi",L".wmv",L".mpg",L".mpeg",L".ts",L".m2ts",L".3gp"};
 static void RegisterOpenWith(HKEY root,const std::wstring& exe) {
     const std::wstring app=L"Software\\Classes\\Applications\\Lost Eye.exe", prog=L"Software\\Classes\\LostEye.Video";
@@ -152,13 +167,15 @@ static void RegisterOpenWith(HKEY root,const std::wstring& exe) {
     const std::wstring caps=L"Software\\Lost Eye\\Capabilities";
     SetRegistry(root,caps,L"ApplicationName",L"Lost Eye");SetRegistry(root,caps,L"ApplicationDescription",L"A simple video player");SetRegistry(root,caps,L"ApplicationIcon",icon);
     for(const auto& ext:Extensions) {
-        SetRegistry(root,app+L"\\SupportedTypes",ext.c_str(),L"");
         SetRegistry(root,caps+L"\\FileAssociations",ext.c_str(),L"LostEye.Video");
         HKEY key{};Check(HRESULT_FROM_WIN32(RegCreateKeyExW(root,(L"Software\\Classes\\"+ext+L"\\OpenWithProgids").c_str(),0,nullptr,0,KEY_SET_VALUE,nullptr,&key,nullptr)));
         auto status=RegSetValueExW(key,L"LostEye.Video",0,REG_NONE,nullptr,0);RegCloseKey(key);Check(HRESULT_FROM_WIN32(status));
     }
     SetRegistry(root,L"Software\\RegisteredApplications",L"Lost Eye",caps);
     SetRegistry(root,L"Software\\Microsoft\\Windows\\CurrentVersion\\App Paths\\Lost Eye.exe",nullptr,exe);
+    // Remove the empty values written by older builds after the ProgID route is ready.
+    const auto supportedTypes=app+L"\\SupportedTypes";
+    for(const auto& ext:Extensions) RemoveLegacySupportedType(root,supportedTypes,ext.c_str());
     // Never touch UserChoice or a file extension's default value.
 }
 static fs::path KnownFolder(REFKNOWNFOLDERID id) {
@@ -625,6 +642,77 @@ static int VerifyInstallShortcuts(const fs::path& root,const fs::path& report) {
     }catch(HRESULT hr){output<<"ERROR "<<std::hex<<static_cast<unsigned>(hr)<<"\n";check("Shortcut test completed",false);}catch(...){check("Shortcut test completed",false);}
     output<<"CHECKS "<<checks<<"\nFAILURES "<<failures<<"\n";return failures?1:0;
 }
+static int VerifyOpenWithRegistration(const fs::path& hive,const fs::path& executable,const fs::path& report) {
+    if(fs::exists(hive)||fs::exists(report)||!fs::is_regular_file(executable)) return 2;
+    std::ofstream output(report);
+    if(!output) return 2;
+    int checks=0,failures=0;
+    auto check=[&](const char* label,bool pass) {
+        ++checks;
+        if(!pass) ++failures;
+        output<<(pass?"PASS ":"FAIL ")<<label<<"\n";
+    };
+    HKEY root{};
+    try {
+        Check(HRESULT_FROM_WIN32(RegLoadAppKeyW(hive.c_str(),&root,KEY_ALL_ACCESS,REG_PROCESS_APPKEY,0)));
+        const std::wstring app=L"Software\\Classes\\Applications\\Lost Eye.exe";
+        const std::wstring types=app+L"\\SupportedTypes";
+        const std::wstring prog=L"Software\\Classes\\LostEye.Video";
+        const std::wstring caps=L"Software\\Lost Eye\\Capabilities";
+        const std::wstring webm=L"Software\\Classes\\.webm";
+        const std::wstring fileExt=L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FileExts\\.webm";
+        const auto stringIs=[&](const std::wstring& key,const wchar_t* name,const std::wstring& expected) {
+            wchar_t value[1024]{};
+            DWORD bytes=sizeof(value);
+            return RegGetValueW(root,key.c_str(),name,RRF_RT_REG_SZ,nullptr,value,&bytes)==ERROR_SUCCESS&&expected==value;
+        };
+        const auto valueStatus=[&](const std::wstring& key,const wchar_t* name) {
+            DWORD bytes=0;
+            return RegGetValueW(root,key.c_str(),name,RRF_RT_ANY,nullptr,nullptr,&bytes);
+        };
+        SetRegistry(root,webm,nullptr,L"Fixture.Player");
+        SetRegistry(root,webm+L"\\OpenWithProgids",L"Fixture.Player",L"");
+        SetRegistry(root,fileExt+L"\\UserChoice",L"ProgId",L"Fixture.Player");
+        SetRegistry(root,fileExt+L"\\UserChoice",L"Hash",L"fixture-hash");
+        SetRegistry(root,fileExt+L"\\UserChoiceLatest\\ProgId",L"ProgId",L"Fixture.Player");
+        SetRegistry(root,fileExt+L"\\OpenWithList",L"a",L"Lost Eye.exe");
+        SetRegistry(root,fileExt+L"\\OpenWithList",L"b",L"Other.exe");
+        SetRegistry(root,fileExt+L"\\OpenWithList",L"MRUList",L"ab");
+
+        RegisterOpenWith(root,executable.wstring());
+        check("Fresh registration does not add SupportedTypes",valueStatus(types,L".webm")==ERROR_FILE_NOT_FOUND);
+        for(const auto& ext:Extensions) SetRegistry(root,types,ext.c_str(),L"");
+        SetRegistry(root,types,L".mkv",L"custom value");
+        SetRegistry(root,types,L".fixture",L"");
+
+        RegisterOpenWith(root,executable.wstring());
+        RegisterOpenWith(root,executable.wstring());
+        check("Migration and repeat registration remove the empty legacy entries",std::all_of(Extensions.begin(),Extensions.end(),[&](const auto& ext) {
+            return ext==L".mkv"||valueStatus(types,ext.c_str())==ERROR_FILE_NOT_FOUND;
+        }));
+        check("Custom and unrecognised SupportedTypes values survive",stringIs(types,L".mkv",L"custom value")&&stringIs(types,L".fixture",L""));
+        check("All supported types retain their ProgID route",std::all_of(Extensions.begin(),Extensions.end(),[&](const auto& ext) {
+            const auto key=L"Software\\Classes\\"+ext+L"\\OpenWithProgids";
+            DWORD bytes=0,type=0;
+            return RegGetValueW(root,key.c_str(),L"LostEye.Video",RRF_RT_ANY,&type,nullptr,&bytes)==ERROR_SUCCESS&&type==REG_NONE&&bytes==0&&
+                stringIs(caps+L"\\FileAssociations",ext.c_str(),L"LostEye.Video");
+        }));
+        check("Default Apps capabilities stay registered",stringIs(L"Software\\RegisteredApplications",L"Lost Eye",caps));
+        const auto command=L"\""+executable.wstring()+L"\" \"%1\"";
+        check("Both existing launch IDs keep the quoted command",stringIs(app+L"\\shell\\open\\command",nullptr,command)&&stringIs(prog+L"\\shell\\open\\command",nullptr,command));
+        check("Other player and extension default survive",stringIs(webm,nullptr,L"Fixture.Player")&&stringIs(webm+L"\\OpenWithProgids",L"Fixture.Player",L""));
+        check("Both Windows choice locations survive",stringIs(fileExt+L"\\UserChoice",L"ProgId",L"Fixture.Player")&&
+            stringIs(fileExt+L"\\UserChoice",L"Hash",L"fixture-hash")&&stringIs(fileExt+L"\\UserChoiceLatest\\ProgId",L"ProgId",L"Fixture.Player"));
+        check("Explorer history survives",stringIs(fileExt+L"\\OpenWithList",L"a",L"Lost Eye.exe")&&
+            stringIs(fileExt+L"\\OpenWithList",L"b",L"Other.exe")&&stringIs(fileExt+L"\\OpenWithList",L"MRUList",L"ab"));
+    }catch(HRESULT hr) {
+        output<<"ERROR "<<std::hex<<static_cast<unsigned>(hr)<<std::dec<<"\n";
+        check("Open with registration test completed",false);
+    }catch(...) { check("Open with registration test completed",false); }
+    if(root) RegCloseKey(root);
+    output<<"CHECKS "<<checks<<"\nFAILURES "<<failures<<"\n";
+    return failures?1:0;
+}
 #endif
 int WINAPI wWinMain(HINSTANCE instance,HINSTANCE,LPWSTR,int show){
     SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
@@ -632,6 +720,7 @@ int WINAPI wWinMain(HINSTANCE instance,HINSTANCE,LPWSTR,int show){
     int argc=0;LPWSTR* argv=CommandLineToArgvW(GetCommandLineW(),&argc);std::wstring path=argc>1?argv[1]:L"";
 #ifdef LOSTEYE_TEST
     if(path==L"--verify-install-shortcuts"&&argc==4){int result=VerifyInstallShortcuts(argv[2],argv[3]);LocalFree(argv);CoUninitialize();return result;}
+    if(path==L"--verify-open-with"&&argc==5){int result=VerifyOpenWithRegistration(argv[2],argv[3],argv[4]);LocalFree(argv);CoUninitialize();return result;}
     if(path==L"--verify-shell"&&argc>=4){
         std::wofstream report{fs::path(argv[3])};report.setf(std::ios::unitbuf);report<<L"START shell enumeration\n";int result=1;
         ComPtr<IEnumAssocHandlers> handlers;HRESULT hr=SHAssocEnumHandlers(L".mp4",ASSOC_FILTER_NONE,&handlers);
