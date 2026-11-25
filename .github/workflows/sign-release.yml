@@ -1,4 +1,4 @@
-name: Sign release binary
+name: Submit Lost Eye signing request
 
 on:
   workflow_dispatch:
@@ -6,11 +6,14 @@ on:
     types: [published]
 
 jobs:
-  build-and-sign:
+  submit-signing-request:
     runs-on: windows-latest
     permissions:
       actions: read
       contents: read
+    outputs:
+      signing-request-id: ${{ steps.submit-signing.outputs['signing-request-id'] }}
+      signing-request-web-url: ${{ steps.submit-signing.outputs['signing-request-web-url'] }}
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -28,23 +31,23 @@ jobs:
           archive: false
 
       - name: Submit signing request
+        id: submit-signing
         uses: signpath/github-action-submit-signing-request@v3
         with:
           api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
           organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
           project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
           signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
+          artifact-configuration-slug: ${{ vars.SIGNPATH_ARTIFACT_CONFIGURATION_SLUG }}
           github-artifact-id: ${{ steps.upload-unsigned.outputs.artifact-id }}
-          wait-for-completion: true
-          output-artifact-directory: signed
-          skip-decompress: true
+          wait-for-completion: false
 
-      - name: Verify signature
+      - name: Record signing request
         shell: pwsh
+        env:
+          REQUEST_ID: ${{ steps.submit-signing.outputs['signing-request-id'] }}
+          REQUEST_URL: ${{ steps.submit-signing.outputs['signing-request-web-url'] }}
         run: |
-          $signature = Get-AuthenticodeSignature -LiteralPath 'signed/Lost Eye.exe'
-          if ($signature.Status -ne 'Valid') {
-            throw "Signature is not valid: $($signature.Status)"
-          }
-          Write-Host "Signer: $($signature.SignerCertificate.Subject)"
-          Write-Host "Timestamp: $($signature.TimeStamperCertificate.NotAfter)"
+          "SignPath request ID: $env:REQUEST_ID" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+          "Approve at: $env:REQUEST_URL" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+          Write-Host "Request submitted. After approval, run 'Download and verify signed Lost Eye' with request ID $env:REQUEST_ID."

@@ -68,4 +68,4 @@ Free code signing provided by [SignPath.io](https://about.signpath.io), certific
 - Approvers: the repository owner, who approves each signing request before release.
 - Privacy: This program will not transfer any information to other networked systems unless specifically requested by the user or the person installing or operating it. Windows media components, graphics drivers and the graphics device are supplied by the operating system and have their own privacy terms.
 
-The release workflow is configured to sign builds through SignPath.io; setup is recorded in [SIGNING.md](SIGNING.md). Binaries you build locally are unsigned unless you sign them yourself.
+The release workflows submit builds to SignPath.io and download the signed EXE after approval; setup is recorded in [SIGNING.md](SIGNING.md). Binaries you build locally are unsigned unless you sign them yourself.

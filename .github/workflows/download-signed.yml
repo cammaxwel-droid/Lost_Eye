@@ -1,0 +1,72 @@
+name: Download and verify signed Lost Eye
+
+on:
+  workflow_dispatch:
+    inputs:
+      signing_request_id:
+        description: 'SignPath signing request ID from the submit workflow'
+        required: true
+        type: string
+      tag:
+        description: 'Optional release tag to attach the signed EXE to, for example v0.3.4'
+        required: false
+        type: string
+
+jobs:
+  download-and-verify:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check signing request status
+        shell: pwsh
+        env:
+          SIGNPATH_ORGANIZATION_ID: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
+          SIGNING_REQUEST_ID: ${{ inputs.signing_request_id }}
+        run: |
+          $organization = [uri]::EscapeDataString($env:SIGNPATH_ORGANIZATION_ID)
+          $request = [uri]::EscapeDataString($env:SIGNING_REQUEST_ID)
+          $statusUrl = "https://pipelineconnector.connectors.signpath.io/GitHubActions/GitHubCom/$organization/SigningRequests/$request/Status?api-version=1.0"
+          $status = Invoke-RestMethod -Uri $statusUrl -Headers @{ Authorization = "Bearer $env:SIGNPATH_API_TOKEN"; Accept = 'application/json' }
+          if (-not $status.isFinalStatus -or $status.status -ne 'Completed') {
+            throw "Signing request is not completed (status: $($status.status)). Approve it in SignPath first."
+          }
+
+      - name: Download signed EXE
+        shell: pwsh
+        env:
+          SIGNPATH_ORGANIZATION_ID: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
+          SIGNING_REQUEST_ID: ${{ inputs.signing_request_id }}
+        run: |
+          New-Item -ItemType Directory -Force -Path 'signed' | Out-Null
+          $organization = [uri]::EscapeDataString($env:SIGNPATH_ORGANIZATION_ID)
+          $request = [uri]::EscapeDataString($env:SIGNING_REQUEST_ID)
+          $artifactUrl = "https://pipelineconnector.connectors.signpath.io/GitHubActions/GitHubCom/$organization/SigningRequests/$request/SignedArtifact?api-version=1.0"
+          Invoke-WebRequest -Uri $artifactUrl -Headers @{ Authorization = "Bearer $env:SIGNPATH_API_TOKEN" } -OutFile 'signed/Lost Eye.exe'
+
+      - name: Verify signature
+        shell: pwsh
+        run: |
+          $signature = Get-AuthenticodeSignature -LiteralPath 'signed/Lost Eye.exe'
+          if ($signature.Status -ne 'Valid') {
+            throw "Signature is not valid: $($signature.Status)"
+          }
+          Write-Host "Signer: $($signature.SignerCertificate.Subject)"
+          Write-Host "Timestamp: $($signature.TimeStamperCertificate.NotAfter)"
+
+      - name: Upload signed EXE
+        uses: actions/upload-artifact@v4
+        with:
+          name: Lost Eye signed
+          path: signed/Lost Eye.exe
+          archive: false
+
+      - name: Attach to release
+        if: inputs.tag != ''
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: gh release upload $TAG 'signed/Lost Eye.exe' --clobber
