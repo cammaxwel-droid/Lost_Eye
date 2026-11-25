@@ -1,6 +1,6 @@
 # Build Lost Eye from source
 
-This builds the native Windows version from the included C++ source and duck icon. It uses Windows Media Foundation and Direct3D 11. The build uses the installed Microsoft toolchain and Windows SDK without downloading packages or codec libraries. Read [LICENSE](LICENSE) and [LICENSING.md](LICENSING.md) for permission to use this source; personal source builds do not grant commercial redistribution rights.
+This builds the native Windows version from the included C++ source and duck icon. It uses Windows Media Foundation and Direct3D 11. The build uses the installed Microsoft toolchain and Windows SDK without downloading packages or codec libraries. This source is released under GPL-2.0-or-later; read [LICENSE](LICENSE) and [LICENSING.md](LICENSING.md) for the terms and for earlier release rights.
 
 This source builds Lost Eye 0.3.4. Download the portable Windows x64 ZIP from the GitHub release if you only want to run the player.
 
@@ -25,7 +25,7 @@ Microsoft's tools and Windows SDK have their own licence terms. Standalone Build
    Repeating a build adds a date and unique suffix to the folder name to preserve your earlier build. Close any running Lost Eye before trying another build.
 4. Choose **Open file**, drag a video onto the window, or pass a video path to the executable. Use a video already known to play on that Windows installation. Supported formats depend on Windows components and codecs installed on the computer.
 
-The executable is portable and needs no developer tools to run. It is currently unsigned. If Windows blocks downloaded files, review their source before deciding to allow them. For a trusted downloaded ZIP, its **Properties > Unblock** option, when present, can remove the download mark before extracting it again. If PowerShell reports that script execution is disabled, follow your computer's execution-policy requirements or contact its administrator. The launcher does not change or bypass those policies.
+The executable is portable and needs no developer tools to run. Release signing is configured through SignPath.io; an EXE built locally from this source is unsigned unless you sign it yourself. If Windows blocks downloaded files, review their source before deciding to allow them. For a trusted downloaded ZIP, its **Properties > Unblock** option, when present, can remove the download mark before extracting it again. If PowerShell reports that script execution is disabled, follow your computer's execution-policy requirements or contact its administrator. The launcher does not change or bypass those policies.
 
 ## Optional installation and Open with
 
@@ -46,7 +46,7 @@ For a deliberately named build, open PowerShell in the extracted source folder a
 .\scripts\Package-Native.ps1 -OutputName 'Lost-Eye-my-build'
 ```
 
-The result is `artifacts\Lost-Eye-my-build.zip`, containing `Lost Eye.exe`, install/uninstall launchers and the uninstall script, documentation, licence and third-party notices, and matching native source in `Lost-Eye-native-source.zip`. `BUILD-INFO.json` records compiler/SDK versions and source/executable hashes; `SHA256SUMS.txt` lists the packaged files, excluding itself. A `.zip.sha256` file beside the ZIP records the archive hash. The package contains only the current native implementation and its listed files. Keep your use within [LICENSE](LICENSE).
+The result is `artifacts\Lost-Eye-my-build.zip`, containing `Lost Eye.exe`, install/uninstall launchers and the uninstall script, documentation, licence and third-party notices, and matching native source in `Lost-Eye-native-source.zip`. `BUILD-INFO.json` records compiler/SDK versions and source/executable hashes; `SHA256SUMS.txt` lists the packaged files, excluding itself. A `.zip.sha256` file beside the ZIP records the archive hash. The package contains only the current native implementation and its listed files. Keep your use within [LICENSE](LICENSE) and [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 Explicit output names never overwrite an existing build or ZIP. Choose a new name for another attempt. Packaging checks that the compiled source, icon, manifest, build script, and executable still match the recorded build. If they changed, rebuild under a new name first. Packaging uses a fresh staging folder rather than collecting unrelated files from a previous build.
 

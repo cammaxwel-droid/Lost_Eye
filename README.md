@@ -58,4 +58,14 @@ The current branch contains the native player only. Earlier implementations and 
 
 ## License
 
-Native 0.3.4 is source-available for personal, noncommercial source builds and use under [LICENSE](LICENSE). Commercial rights are reserved to the extent held by the owner; commercial use or redistribution needs separate permission. See [LICENSING.md](LICENSING.md) for earlier release rights and [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) for the current component inventory. Original duck assets and the generation record remain unchanged.
+Native 0.3.4 is released under the [GNU General Public License, version 2 or (at your option) any later version](LICENSE) (GPL-2.0-or-later), an OSI-approved open-source license. See [LICENSING.md](LICENSING.md) for earlier release rights and [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) for the current component inventory. Original duck assets and the generation record remain unchanged.
+
+## Code signing policy
+
+Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by [SignPath Foundation](https://signpath.org).
+
+- Authors and reviewers: repository maintainers with write access to this repository. Changes from outside that group are reviewed before merge.
+- Approvers: the repository owner, who approves each signing request before release.
+- Privacy: This program will not transfer any information to other networked systems unless specifically requested by the user or the person installing or operating it. Windows media components, graphics drivers and the graphics device are supplied by the operating system and have their own privacy terms.
+
+The release workflow is configured to sign builds through SignPath.io; setup is recorded in [SIGNING.md](SIGNING.md). Binaries you build locally are unsigned unless you sign them yourself.

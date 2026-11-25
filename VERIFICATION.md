@@ -13,7 +13,7 @@ Release executable SHA-256: 4ec8222389efeee93c3a28e205a58e82ac11abad37e7bfd91d14
 
 The portable download is Lost-Eye-0.3.4-win-x64.zip. Matching native source is included and provided separately as Lost-Eye-0.3.4-native-source.zip. Both ZIPs have SHA-256 sidecars. Local test reports are retained under artifacts/release-0.3.4-*-tests.txt and excluded from the published assets.
 
-These checks used isolated filesystem and registry fixtures; they did not modify the real installation, shortcuts or default-player choices. Full playback and the installed Start/Open with round trip were not repeated for this patch. The unchanged playback implementation retains the earlier evidence below, with its original scope. Compatibility with every machine, driver or codec is not certified. The executable is unsigned.
+These checks used isolated filesystem and registry fixtures; they did not modify the real installation, shortcuts or default-player choices. Full playback and the installed Start/Open with round trip were not repeated for this patch. The unchanged playback implementation retains the earlier evidence below, with its original scope. Compatibility with every machine, driver or codec is not certified. This verification build was unsigned; release signing is configured separately through SignPath.io.
 
 ## Historical 0.3.3 verification
 

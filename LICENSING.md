@@ -1,10 +1,10 @@
 # Lost Eye licensing
 
-Starting with native **0.3.1**, the project owner's original native code, native build scripts, current documentation and artwork are offered under the [Personal Source License](LICENSE). It permits private personal use, source builds and modifications. Commercial use and redistribution require separate written permission from the owner. This is source-available software, not an OSI open-source release.
+Starting with the relicensed native **0.3.4** source, the project owner's original native code, native build scripts, current documentation and artwork are released under the [GNU General Public License, version 2 or (at your option) any later version](LICENSE) (GPL-2.0-or-later). This is an OSI-approved open-source license. Rights in third-party components are not relicensed by this change. The already-published 0.3.4 portable ZIPs retain the terms under which they were originally supplied; the relicensed source and any newly signed release are GPL-2.0-or-later.
 
 ## Earlier releases remain licensed as supplied
 
-Releases before native **0.3.1**, including native **0.3.0**, were supplied under GPL-2.0-or-later. The artwork was also included with those releases. Changing the license for a later copy does not withdraw existing GPL permissions, including commercial redistribution permitted by GPL. Anyone with a valid earlier GPL copy retains those rights; this new file does not make that code or artwork retrospectively exclusive.
+Releases **0.3.1 through 0.3.3** were supplied under the Lost Eye Personal Source License. It permitted private personal use, source builds and modifications; commercial use and redistribution required separate written permission from the owner. Releases before native **0.3.1**, including native **0.3.0**, were supplied under GPL-2.0-or-later. The artwork was also included with those releases. Changing the license for a later copy does not withdraw existing grants. Anyone with a valid earlier GPL copy retains those rights, including commercial redistribution permitted by GPL; this new file does not make that code or artwork retrospectively exclusive.
 
 Earlier implementations, scripts, assets and notices remain together in the [historical legacy snapshot](https://github.com/cammaxwel-droid/Lost_Eye/tree/1701f1e701325eddfdd307e0e32abe8978a554a2/legacy), under their previous terms. That snapshot retains `LICENSE`, `licenses/LEGACY-GPL-NOTICE.txt` and `licenses/GPL-2.0.txt`. The obsolete implementation is absent from the current branch and native packages. Removing it from the current tree does not change any earlier permissions.
 
@@ -18,6 +18,10 @@ The owner can offer a separate commercial license only for rights they hold. A c
 - Using Windows codecs does not establish universal patent clearance, codec compatibility or rights to protected media.
 
 See [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) for the native inventory and [BUILDING.md](BUILDING.md) for build prerequisites. Building the application from its supplied source still requires Windows and a properly licensed Microsoft toolchain; it is not a rebuild of Windows or Microsoft's runtime from project-owned source.
+
+## Code signing
+
+Release signing for native 0.3.4 is configured through SignPath.io using a certificate from SignPath Foundation. See **Code signing policy** in [README.md](README.md#code-signing-policy) and the setup notes in [SIGNING.md](SIGNING.md). A binary built locally from this source is unsigned unless the builder signs it.
 
 ## Commercial review references
 
